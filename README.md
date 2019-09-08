@@ -7,7 +7,7 @@ These instructions will explain the process of getting the system up and running
 
 ### Prerequisites
 
-Graphviz - Graph Visualization Software
+Graphviz - Graph Visualization Software  
 Python 3.6.x
 ```
 keras
@@ -20,15 +20,12 @@ tensorflow
 
 ### Installing
 
-A step by step series of examples that tell you how to get a development env running
-
 Download/clone the repository into a folder on your computer.
 ```
 $ git clone https://github.com/MitchReyno/Traffic-Flow-Prediction-System
 ```
 
 Move the *Scats Data October 2006.xls* file into the data directory of the project. Your folder structure should look like this:
-
 ```
 |   config.json
 |   config.py
@@ -41,7 +38,7 @@ Move the *Scats Data October 2006.xls* file into the data directory of the proje
 |   |   model.py
 ```
 
-Load the data from the spreadsheet into the application by running the *train.py* without any parameters.
+Load the data from the spreadsheet into the application by running *train.py* without any parameters.
 ```
 $ python train.py
 ```
@@ -56,10 +53,21 @@ Alternatively, you can specify specific SCATS/junctions and the neural network m
 $ python train.py --scats 970 --junction 1 --model lstm
 ```
 
-The output will be available in:
+### Running the Program
+
+Run *main.py* to get a graph output for the specifc SCATS/junction:
 ```
-TFPS/model/[model]/[SCATS]/
+python main.py --scats 970 --junction 1
 ```
+These are the details from the output when the program is executed with the parameters shown above and when all models have been trained:  
+
+| Metrics | MAE | MSE | RMSE | MAPE |  R2  | Explained Variance Score |
+| ------- |:---:| :--:| :--: | :--: | :--: | :----------------------: |
+| LSTM | 15.71 | 468.10 | 21.64 | 15.71% | 0.9713 | 0.9714 |
+| GRU | 17.32 | 573.50 | 23.95 | 17.61% | 0.9649 | 0.9649 |
+| SAEs | 18.39 | 600.81 | 24.51 | 24.05% | 0.9632 | 0.9678 |
+
+![Graph](/images/scats970-1.png)
 
 ## Authors
 

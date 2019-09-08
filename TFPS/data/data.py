@@ -51,23 +51,35 @@ def process_data(scats_number, junction, lags):
     # Returns
         x_train: ndarray.
         y_train: ndarray.
+        x_test: ndarray.
+        y_test: ndarray.
         scaler: StandardScaler.
     """
     with ScatsDB() as s:
-        volume = s.get_scats_volume(scats_number, junction)
+        volume_training = s.get_scats_volume(scats_number, junction)
+        # Testing using the remaining days of the month.
+        volume_testing = volume_training[2016:]
+        # Training using the first 3 weeks.
+        volume_training = volume_training[:2015]
 
         # scaler = StandardScaler().fit(volume.values)
-        scaler = MinMaxScaler(feature_range=(0, 1)).fit(volume.reshape(-1, 1))
-        flow1 = scaler.transform(volume.reshape(-1, 1)).reshape(1, -1)[0]
+        scaler = MinMaxScaler(feature_range=(0, 1)).fit(volume_training.reshape(-1, 1))
+        flow1 = scaler.transform(volume_training.reshape(-1, 1)).reshape(1, -1)[0]
+        flow2 = scaler.transform(volume_testing.reshape(-1, 1)).reshape(1, -1)[0]
 
-        train = []
+        train, test = [], []
         for i in range(lags, len(flow1)):
             train.append(flow1[i - lags: i + 1])
+        for i in range(lags, len(flow2)):
+            test.append(flow2[i - lags: i + 1])
 
         train = np.array(train)
+        test = np.array(test)
         np.random.shuffle(train)
 
         x_train = train[:, :-1]
         y_train = train[:, -1]
+        x_test = test[:, :-1]
+        y_test = test[:, -1]
 
-        return x_train, y_train, scaler
+        return x_train, y_train, x_test, y_test, scaler

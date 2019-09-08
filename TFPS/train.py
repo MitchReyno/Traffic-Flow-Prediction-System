@@ -7,7 +7,6 @@ import warnings
 import argparse
 import numpy as np
 import pandas as pd
-import logging
 from data.data import process_data, read_data
 from data.scats import ScatsDB
 from model import model
@@ -120,7 +119,7 @@ def main(argv):
                 config = {"batch": 256, "epochs": 600}
 
                 for junction in junctions:
-                    x_train, y_train, scaler = process_data(scats, junction, lag)
+                    x_train, y_train, _, _, _ = process_data(scats, junction, lag)
 
                     if args.model == 'lstm':
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
