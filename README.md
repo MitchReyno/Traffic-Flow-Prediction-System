@@ -67,7 +67,7 @@ These are the details from the output when the program is executed with the para
 | GRU | 17.32 | 573.50 | 23.95 | 17.61% | 0.9649 | 0.9649 |
 | SAEs | 18.39 | 600.81 | 24.51 | 24.05% | 0.9632 | 0.9678 |
 
-![Graph](/images/scats970-1.png)
+![Graph](/TFPS/images/scats970-1.png)
 
 ## Authors
 
