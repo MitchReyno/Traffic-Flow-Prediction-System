@@ -1,18 +1,19 @@
 """
 Train the NN model.
 """
+import argparse
 import os
 import sys
 import warnings
-import argparse
+
 import numpy as np
 import pandas as pd
-from data.data import process_data, read_data, check_data_exists
+from keras.models import Model
+
+from data.data import process_data, check_data_exists
 from data.scats import ScatsDB
 from model import model
-from keras.models import Model
-from config import get_setting
-from keras.callbacks import EarlyStopping
+
 warnings.filterwarnings("ignore")
 
 
@@ -38,12 +39,19 @@ def train_model(model, x_train, y_train, name, scats, junction, config):
         epochs=config["epochs"],
         validation_split=0.05)
 
-    os.makedirs("model/{0}/{1}".format(name, scats))
-    model.save("model/{0}/{1}/{2}.h5".format(name, scats, junction))
+    folder = "model/{0}/{1}".format(name, scats)
+    file = "{0}/{1}".format(folder, junction)
+
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    print("Saving {0}.h5".format(file))
+    model.save("{0}.h5".format(file))
 
     df = pd.DataFrame.from_dict(hist.history)
-    df.to_csv("model/{0}/{1}/{2} loss.csv".format(name, scats, junction), encoding='utf-8', index=False)
-
+    df.to_csv("{0} loss.csv".format(file), encoding='utf-8', index=False)
+    print("Saving {0} loss.csv".format(file))
+    print("Training Complete")
 
 def train_seas(models, x_train, y_train, name, scats, junction, config):
     """train
@@ -94,8 +102,8 @@ def train_with_args(scats, junction, model_to_train):
             if scats != "all":
                 scats_numbers = [scats]
 
-            for scats in scats_numbers:
-                junctions = s.get_scats_approaches(scats)
+            for scats_site in scats_numbers:
+                junctions = s.get_scats_approaches(scats_site)
 
                 if junction != "all":
                     junctions = [junction]
@@ -104,20 +112,21 @@ def train_with_args(scats, junction, model_to_train):
                 config = {"batch": 256, "epochs": 600}
 
                 for junction in junctions:
-                    x_train, y_train, _, _, _ = process_data(scats, junction, lag)
+                    print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
+                    x_train, y_train, _, _, _ = process_data(scats_site, junction, lag)
 
                     if model_to_train == 'lstm':
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                        m = model_to_train.get_lstm([12, 64, 64, 1])
-                        train_model(m, x_train, y_train, model_to_train, scats, junction, config)
+                        m = model.get_lstm([12, 64, 64, 1])
+                        train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
                     if model_to_train == 'gru':
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                        m = model_to_train.get_gru([12, 64, 64, 1])
-                        train_model(m, x_train, y_train, model_to_train, scats, junction, config)
+                        m = model.get_gru([12, 64, 64, 1])
+                        train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
                     if model_to_train == 'saes':
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
-                        m = model_to_train.get_saes([12, 400, 400, 400, 1])
-                        train_seas(m, x_train, y_train, model_to_train, scats, junction, config)
+                        m = model.get_saes([12, 400, 400, 400, 1])
+                        train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
 
 
 def main(argv):

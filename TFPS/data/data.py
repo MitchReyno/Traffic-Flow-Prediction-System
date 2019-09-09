@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from time import gmtime, strftime
 
-from config import get_setting
+from utility import get_setting
 from data.scats import ScatsDB
 
 
@@ -25,6 +25,8 @@ def format_date(date):
 
 
 def read_data(data):
+    print("Reading in Data...")
+
     dataset = pd.read_excel(data, sheet_name='Data', skiprows=1, parse_dates=['Date'], date_parser=format_date,
                             nrows=200)
     df = pd.DataFrame(dataset)
@@ -46,6 +48,8 @@ def read_data(data):
                 current_time = row[10] + " " + format_time(i)
                 value = row[11 + i]
                 s.insert_scats_data(current_scats, current_junction, current_time, value)
+
+    print("Reading Complete")
 
 
 def process_data(scats_number, junction, lags):
@@ -91,3 +95,15 @@ def process_data(scats_number, junction, lags):
         y_test = test[:, -1]
 
         return x_train, y_train, x_test, y_test, scaler
+
+
+def resolve_location_id(location_name):
+    location = None
+
+    if location_name != "All":
+        with ScatsDB() as s:
+            location = s.get_location_id(location_name)
+    else:
+        location = "all"
+
+    return location

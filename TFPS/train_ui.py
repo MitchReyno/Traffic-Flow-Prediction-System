@@ -1,12 +1,42 @@
+import threading
+
 from PyQt5 import QtCore, QtGui, QtWidgets
-from data.data import read_data, check_data_exists
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication
+
+from data.data import read_data, check_data_exists, resolve_location_id
 from train import train_with_args
 from data.scats import ScatsDB
+from utility import ConsoleStream
+
+
+def load():
+    QApplication.setOverrideCursor(Qt.WaitCursor)
+    read_data("data/Scats Data October 2006.xls")
+    QApplication.restoreOverrideCursor()
 
 
 class UiTrain(object):
     def __init__(self):
         self.scats_info = {}
+        sys.stdout = ConsoleStream(text_output=self.display_output)
+
+
+    def __del__(self):
+        sys.stdout = sys.__stdout__
+
+
+    def multithreaded_output(self):
+        self.thread = threading.Thread(target=self.train)
+        self.thread.start()
+
+
+    def display_output(self, text):
+        cursor = self.outputTextEdit.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        cursor.insertText(text)
+        self.outputTextEdit.setTextCursor(cursor)
+        self.outputTextEdit.ensureCursorVisible()
 
 
     def setup(self, main):
@@ -66,13 +96,24 @@ class UiTrain(object):
         self.trainPushButton.setFont(font)
         self.trainPushButton.setObjectName("trainPushButton")
         self.verticalLayout.addWidget(self.trainPushButton)
+        self.verticalLayout.addWidget(self.trainPushButton)
+        self.horizontalLine = QtWidgets.QFrame(self.mainWidget)
+        self.horizontalLine.setFrameShape(QtWidgets.QFrame.HLine)
+        self.horizontalLine.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.horizontalLine.setObjectName("horizontalLine")
+        self.verticalLayout.addWidget(self.horizontalLine)
+        self.outputTextEdit = QtWidgets.QPlainTextEdit(self.mainWidget)
+        self.outputTextEdit.setReadOnly(True)
+        self.outputTextEdit.setObjectName("outputTextEdit")
+        font.setPointSize(10)
+        self.outputTextEdit.setFont(font)
+        self.verticalLayout.addWidget(self.outputTextEdit)
         mainWindow.setCentralWidget(self.mainWidget)
 
         self.translate(mainWindow)
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
 
         self.init_widgets()
-
 
     def translate(self, main):
         _translate = QtCore.QCoreApplication.translate
@@ -102,13 +143,12 @@ class UiTrain(object):
 
             self.junctionComboBox.setEnabled(True)
 
-    def load(self):
-        read_data("data/Scats Data October 2006.xls")
-
     def train(self):
-        train_with_args(self.scatsNumberComboBox.itemText(self.scatsNumberComboBox.currentIndex()).lower(),
-                        self.junctionComboBox.itemText(self.junctionComboBox.currentIndex()).lower(),
-                        self.modelComboBox.itemText(self.modelComboBox.currentIndex()))
+        scats_number = self.scatsNumberComboBox.itemText(self.scatsNumberComboBox.currentIndex()).lower()
+        junction = resolve_location_id(self.junctionComboBox.itemText(self.junctionComboBox.currentIndex()))
+        model = self.modelComboBox.itemText(self.modelComboBox.currentIndex()).lower()
+
+        train_with_args(scats_number, junction, model)
 
 
     def init_widgets(self):
@@ -146,13 +186,14 @@ class UiTrain(object):
 
                 self.scats_info[str(scats)] = locations
 
-        self.loadPushButton.clicked.connect(self.load)
-        self.trainPushButton.clicked.connect(self.train)
+        self.loadPushButton.clicked.connect(load)
+        self.trainPushButton.clicked.connect(self.multithreaded_output)
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyleSheet("QPlainTextEdit {background-color: black; color:limegreen}")
     mainWindow = QtWidgets.QMainWindow()
     ui = UiTrain()
     ui.setup(mainWindow)

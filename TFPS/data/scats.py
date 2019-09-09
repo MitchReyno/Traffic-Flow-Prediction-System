@@ -1,6 +1,6 @@
 import sqlite3
 import numpy as np
-from config import get_setting
+from utility import get_setting
 
 
 class ScatsDB(object):
@@ -75,10 +75,20 @@ class ScatsDB(object):
         self.cursor.execute("SELECT DISTINCT scats_number FROM scats")
         return [item[0] for item in self.cursor.fetchall()]
 
+
     def get_location_name(self, scats_number, internal_location):
         self.cursor.execute("SELECT location_name FROM scats WHERE scats_number = ? AND internal_location = ?",
                             (scats_number, internal_location))
+
         return self.cursor.fetchone()[0]
+
+
+    def get_location_id(self, location_name):
+        self.cursor.execute("SELECT internal_location FROM scats WHERE location_name = ? ",
+                            (location_name,))
+
+        return self.cursor.fetchone()[0]
+
 
     def get_scats_approaches(self, scats_number):
         self.cursor.execute("SELECT internal_location FROM scats WHERE scats_number = ?",
