@@ -1,6 +1,8 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from data.data import read_data, check_data_exists
+from train import train_with_args
 from data.scats import ScatsDB
+
 
 class UiTrain(object):
     def __init__(self):
@@ -100,6 +102,14 @@ class UiTrain(object):
 
             self.junctionComboBox.setEnabled(True)
 
+    def load(self):
+        read_data("data/Scats Data October 2006.xls")
+
+    def train(self):
+        train_with_args(self.scatsNumberComboBox.itemText(self.scatsNumberComboBox.currentIndex()).lower(),
+                        self.junctionComboBox.itemText(self.junctionComboBox.currentIndex()).lower(),
+                        self.modelComboBox.itemText(self.modelComboBox.currentIndex()))
+
 
     def init_widgets(self):
         _translate = QtCore.QCoreApplication.translate
@@ -107,14 +117,17 @@ class UiTrain(object):
             self.statusLabel.setText(_translate("mainWindow",
                                                 "<html><head/><body><p><span style=\" color:#00FF00;\">Yes</span></p></body></html>"))
             self.loadPushButton.setEnabled(False)
+            self.scatsNumberComboBox.addItem("All")
+            self.junctionComboBox.addItem("All")
         else:
             self.trainPushButton.setEnabled(False)
+            self.scatsNumberComboBox.setEnabled(False)
+            self.scatsNumberComboBox.addItem("None")
+            self.junctionComboBox.addItem("None")
+
+        self.junctionComboBox.setEnabled(False)
 
         self.scatsNumberComboBox.currentIndexChanged.connect(self.scats_number_changed)
-
-        self.scatsNumberComboBox.addItem("All")
-        self.junctionComboBox.addItem("All")
-        self.junctionComboBox.setEnabled(False)
 
         models = ['LSTM', 'GRU', 'SAEs']
         for model in models:
@@ -126,6 +139,9 @@ class UiTrain(object):
             for scats in scats_numbers:
                 self.scatsNumberComboBox.addItem(str(scats))
                 self.scats_info[str(scats)] = s.get_scats_approaches(scats)
+
+        self.loadPushButton.clicked.connect(self.load)
+        self.trainPushButton.clicked.connect(self.train)
 
 
 if __name__ == "__main__":
