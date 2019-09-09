@@ -74,7 +74,7 @@ def plot_results(y_true, y_preds, names):
         names: List, Method names.
     """
     d = '2006-10-22 00:00'
-    x = pd.date_range(d, periods=95, freq='15min')
+    x = pd.date_range(d, periods=96, freq='15min')
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -135,11 +135,11 @@ def main(argv):
         plot_model(model, to_file=file, show_shapes=True)
         predicted = model.predict(x_test)
         predicted = scaler.inverse_transform(predicted.reshape(-1, 1)).reshape(1, -1)[0]
-        y_preds.append(predicted[:95])
+        y_preds.append(predicted[:96])
         print(name)
         eva_regress(y_test, predicted)
 
-    plot_results(y_test[:95], y_preds, names)
+    plot_results(y_test[:96], y_preds, names)
 
 
 if __name__ == '__main__':

@@ -56,11 +56,11 @@ def process_data(scats_number, junction, lags):
         scaler: StandardScaler.
     """
     with ScatsDB() as s:
-        volume_training = s.get_scats_volume(scats_number, junction)
-        # Testing using the remaining days of the month.
-        volume_testing = volume_training[2016:]
+        volume_data = s.get_scats_volume(scats_number, junction)
         # Training using the first 3 weeks.
-        volume_training = volume_training[:2015]
+        volume_training = volume_data[:2016]
+        # Testing using the remaining days of the month.
+        volume_testing = volume_data[2016:]
 
         # scaler = StandardScaler().fit(volume.values)
         scaler = MinMaxScaler(feature_range=(0, 1)).fit(volume_training.reshape(-1, 1))

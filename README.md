@@ -18,6 +18,8 @@ scikit-learn
 tensorflow
 ```
 
+[![Anaconda-Server Badge](https://anaconda.org/nathantemplar/tfps/badges/installer/env.svg)](https://anaconda.org/nathantemplar/tfps/2019.09.09.174828/download/tfps.yml)
+
 ### Installing
 
 Download/clone the repository into a folder on your computer.
@@ -29,6 +31,7 @@ Move the *Scats Data October 2006.xls* file into the data directory of the proje
 ```
 |   config.json
 |   config.py
+|   main.py
 |   train.py
 +---data
 |   |   data.py
