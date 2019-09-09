@@ -98,7 +98,7 @@ class UiTrain(object):
             self.junctionComboBox.addItem("All")
 
             for junction in self.scats_info[value]:
-                self.junctionComboBox.addItem(str(junction))
+                self.junctionComboBox.addItem(junction)
 
             self.junctionComboBox.setEnabled(True)
 
@@ -138,7 +138,13 @@ class UiTrain(object):
 
             for scats in scats_numbers:
                 self.scatsNumberComboBox.addItem(str(scats))
-                self.scats_info[str(scats)] = s.get_scats_approaches(scats)
+
+                locations = []
+                for junction in s.get_scats_approaches(scats):
+                    location_name = s.get_location_name(scats, junction)
+                    locations.append(location_name)
+
+                self.scats_info[str(scats)] = locations
 
         self.loadPushButton.clicked.connect(self.load)
         self.trainPushButton.clicked.connect(self.train)

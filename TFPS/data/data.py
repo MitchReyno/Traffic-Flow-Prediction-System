@@ -36,11 +36,11 @@ def read_data(data):
             if row[1] != current_scats:
                 current_scats = row[1]
                 current_junction = row[8]
-                s.insert_new_scats(current_scats, current_junction, row[4], row[5])
+                s.insert_new_scats(current_scats, current_junction, row[2], row[4], row[5])
             else:
                 if row[8] != current_junction:
                     current_junction = row[8]
-                    s.insert_new_scats(current_scats, current_junction, row[4], row[5])
+                    s.insert_new_scats(current_scats, current_junction, row[2], row[4], row[5])
 
             for i in range(96):
                 current_time = row[10] + " " + format_time(i)
