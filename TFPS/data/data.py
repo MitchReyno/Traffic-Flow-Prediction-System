@@ -1,11 +1,19 @@
 """
 Processing the data
 """
+import os
+
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from time import gmtime, strftime
+
+from config import get_setting
 from data.scats import ScatsDB
+
+
+def check_data_exists():
+    return os.path.exists("data/{0}".format(get_setting("database")))
 
 
 def format_time(index):

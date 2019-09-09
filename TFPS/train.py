@@ -7,7 +7,7 @@ import warnings
 import argparse
 import numpy as np
 import pandas as pd
-from data.data import process_data, read_data
+from data.data import process_data, read_data, check_data_exists
 from data.scats import ScatsDB
 from model import model
 from keras.models import Model
@@ -102,7 +102,7 @@ def main(argv):
         help="Model to train.")
     args = parser.parse_args()
 
-    if os.path.exists("data/{0}".format(get_setting("database"))):
+    if check_data_exists():
         with ScatsDB() as s:
             scats_numbers = s.get_all_scats_numbers()
 
