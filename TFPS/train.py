@@ -51,7 +51,7 @@ def train_model(model, x_train, y_train, name, scats, junction, config):
     df = pd.DataFrame.from_dict(hist.history)
     df.to_csv("{0} loss.csv".format(file), encoding='utf-8', index=False)
     print("Saving {0} loss.csv".format(file))
-    print("Training Complete")
+    print("Training complete")
 
 def train_seas(models, x_train, y_train, name, scats, junction, config):
     """train

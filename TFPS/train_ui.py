@@ -10,15 +10,30 @@ from data.scats import ScatsDB
 from utility import ConsoleStream
 
 
-def load():
-    QApplication.setOverrideCursor(Qt.WaitCursor)
-    read_data("data/Scats Data October 2006.xls")
-    QApplication.restoreOverrideCursor()
-
-
 class UiTrain(object):
-    def __init__(self):
+    def __init__(self, main):
+        self.thread = threading.Thread(target=self.train)
+
+        self.main = main
+        self.main_widget = QtWidgets.QWidget(main)
+        self.output_text_edit = QtWidgets.QPlainTextEdit(self.main_widget)
+        self.horizontal_line = QtWidgets.QFrame(self.main_widget)
+        self.train_push_button = QtWidgets.QPushButton(self.main_widget)
+        self.junction_combo_box = QtWidgets.QComboBox(self.main_widget)
+        self.junction_label = QtWidgets.QLabel(self.main_widget)
+        self.scats_number_combo_box = QtWidgets.QComboBox(self.main_widget)
+        self.scats_number_label = QtWidgets.QLabel(self.main_widget)
+        self.model_combo_box = QtWidgets.QComboBox(self.main_widget)
+        self.model_label = QtWidgets.QLabel(self.main_widget)
+        self.settings_layout = QtWidgets.QFormLayout()
+        self.load_push_button = QtWidgets.QPushButton(self.main_widget)
+        self.status_label = QtWidgets.QLabel(self.main_widget)
+        self.scats_data_label = QtWidgets.QLabel(self.main_widget)
+        self.scats_data_layout = QtWidgets.QHBoxLayout()
+        self.vertical_layout = QtWidgets.QVBoxLayout(self.main_widget)
+
         self.scats_info = {}
+
         sys.stdout = ConsoleStream(text_output=self.display_output)
 
 
@@ -26,158 +41,150 @@ class UiTrain(object):
         sys.stdout = sys.__stdout__
 
 
-    def multithreaded_output(self):
-        self.thread = threading.Thread(target=self.train)
-        self.thread.start()
+    def load(self):
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        read_data("data/Scats Data October 2006.xls")
+        self.junction_combo_box.clear()
+        self.scats_number_combo_box.clear()
+        self.model_combo_box.clear()
+        self.init_widgets()
+        QApplication.restoreOverrideCursor()
 
 
     def display_output(self, text):
-        cursor = self.outputTextEdit.textCursor()
+        cursor = self.output_text_edit.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
         cursor.insertText(text)
-        self.outputTextEdit.setTextCursor(cursor)
-        self.outputTextEdit.ensureCursorVisible()
+        self.output_text_edit.setTextCursor(cursor)
+        self.output_text_edit.ensureCursorVisible()
 
-
-    def setup(self, main):
-        main.setObjectName("mainWindow")
-        main.resize(600, 300)
-        self.mainWidget = QtWidgets.QWidget(main)
-        self.mainWidget.setObjectName("mainWidget")
-        main.setWindowIcon(QtGui.QIcon('images/traffic_jam_64px.png'))
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.mainWidget)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.scatsDataLayout = QtWidgets.QHBoxLayout()
-        self.scatsDataLayout.setObjectName("scatsDataLayout")
-        self.scatsDataLabel = QtWidgets.QLabel(self.mainWidget)
+    def setup(self):
         font = QtGui.QFont()
         font.setPointSize(12)
-        self.scatsDataLabel.setFont(font)
-        self.scatsDataLabel.setObjectName("scatsDataLabel")
-        self.scatsDataLayout.addWidget(self.scatsDataLabel)
-        self.statusLabel = QtWidgets.QLabel(self.mainWidget)
-        self.statusLabel.setFont(font)
-        self.statusLabel.setObjectName("statusLabel")
-        self.scatsDataLayout.addWidget(self.statusLabel)
-        self.loadPushButton = QtWidgets.QPushButton(self.mainWidget)
-        self.loadPushButton.setFont(font)
-        self.loadPushButton.setObjectName("loadPushButton")
-        self.scatsDataLayout.addWidget(self.loadPushButton)
-        self.verticalLayout.addLayout(self.scatsDataLayout)
-        self.settingsLayout = QtWidgets.QFormLayout()
-        self.settingsLayout.setFormAlignment(QtCore.Qt.AlignCenter)
-        self.settingsLayout.setObjectName("settingsLayout")
-        self.modelLabel = QtWidgets.QLabel(self.mainWidget)
-        self.modelLabel.setFont(font)
-        self.modelLabel.setObjectName("modelLabel")
-        self.settingsLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.modelLabel)
-        self.modelComboBox = QtWidgets.QComboBox(self.mainWidget)
-        self.modelComboBox.setFont(font)
-        self.modelComboBox.setObjectName("modelComboBox")
-        self.settingsLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.modelComboBox)
-        self.scatsNumberLabel = QtWidgets.QLabel(self.mainWidget)
-        self.scatsNumberLabel.setFont(font)
-        self.scatsNumberLabel.setObjectName("scatsNumberLabel")
-        self.settingsLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.scatsNumberLabel)
-        self.scatsNumberComboBox = QtWidgets.QComboBox(self.mainWidget)
-        self.scatsNumberComboBox.setFont(font)
-        self.scatsNumberComboBox.setObjectName("scatsNumberComboBox")
-        self.settingsLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.scatsNumberComboBox)
-        self.junctionLabel = QtWidgets.QLabel(self.mainWidget)
-        self.junctionLabel.setFont(font)
-        self.junctionLabel.setObjectName("junctionLabel")
-        self.settingsLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.junctionLabel)
-        self.junctionComboBox = QtWidgets.QComboBox(self.mainWidget)
-        self.junctionComboBox.setFont(font)
-        self.junctionComboBox.setObjectName("junctionComboBox")
-        self.settingsLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.junctionComboBox)
-        self.verticalLayout.addLayout(self.settingsLayout)
-        self.trainPushButton = QtWidgets.QPushButton(self.mainWidget)
-        self.trainPushButton.setFont(font)
-        self.trainPushButton.setObjectName("trainPushButton")
-        self.verticalLayout.addWidget(self.trainPushButton)
-        self.verticalLayout.addWidget(self.trainPushButton)
-        self.horizontalLine = QtWidgets.QFrame(self.mainWidget)
-        self.horizontalLine.setFrameShape(QtWidgets.QFrame.HLine)
-        self.horizontalLine.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.horizontalLine.setObjectName("horizontalLine")
-        self.verticalLayout.addWidget(self.horizontalLine)
-        self.outputTextEdit = QtWidgets.QPlainTextEdit(self.mainWidget)
-        self.outputTextEdit.setReadOnly(True)
-        self.outputTextEdit.setObjectName("outputTextEdit")
+        self.main.setObjectName("main_window")
+        self.main.resize(600, 300)
+        self.main_widget.setObjectName("main_widget")
+        self.main.setWindowIcon(QtGui.QIcon('images/traffic_jam_64px.png'))
+        self.vertical_layout.setObjectName("vertical_layout")
+        self.scats_data_layout.setObjectName("scats_data_layout")
+        self.scats_data_label.setFont(font)
+        self.scats_data_label.setObjectName("scats_data_label")
+        self.scats_data_layout.addWidget(self.scats_data_label)
+        self.status_label.setFont(font)
+        self.status_label.setObjectName("status_label")
+        self.scats_data_layout.addWidget(self.status_label)
+        self.load_push_button.setFont(font)
+        self.load_push_button.setObjectName("load_push_button")
+        self.scats_data_layout.addWidget(self.load_push_button)
+        self.vertical_layout.addLayout(self.scats_data_layout)
+        self.settings_layout.setFormAlignment(QtCore.Qt.AlignCenter)
+        self.settings_layout.setObjectName("settings_layout")
+        self.model_label.setFont(font)
+        self.model_label.setObjectName("model_label")
+        self.settings_layout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.model_label)
+        self.model_combo_box.setFont(font)
+        self.model_combo_box.setObjectName("model_combo_box")
+        self.settings_layout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.model_combo_box)
+        self.scats_number_label.setFont(font)
+        self.scats_number_label.setObjectName("scats_number_label")
+        self.settings_layout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.scats_number_label)
+        self.scats_number_combo_box.setFont(font)
+        self.scats_number_combo_box.setObjectName("scats_number_combo_box")
+        self.settings_layout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.scats_number_combo_box)
+        self.junction_label.setFont(font)
+        self.junction_label.setObjectName("junction_label")
+        self.settings_layout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.junction_label)
+        self.junction_combo_box.setFont(font)
+        self.junction_combo_box.setObjectName("junction_combo_box")
+        self.settings_layout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.junction_combo_box)
+        self.vertical_layout.addLayout(self.settings_layout)
+        self.train_push_button.setFont(font)
+        self.train_push_button.setObjectName("train_push_button")
+        self.vertical_layout.addWidget(self.train_push_button)
+        self.vertical_layout.addWidget(self.train_push_button)
+        self.horizontal_line.setFrameShape(QtWidgets.QFrame.HLine)
+        self.horizontal_line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.horizontal_line.setObjectName("horizontal_line")
+        self.vertical_layout.addWidget(self.horizontal_line)
+        self.output_text_edit.setReadOnly(True)
+        self.output_text_edit.setObjectName("output_text_edit")
         font.setPointSize(10)
-        self.outputTextEdit.setFont(font)
-        self.verticalLayout.addWidget(self.outputTextEdit)
-        mainWindow.setCentralWidget(self.mainWidget)
+        self.output_text_edit.setFont(font)
+        self.vertical_layout.addWidget(self.output_text_edit)
+        main_window.setCentralWidget(self.main_widget)
 
-        self.translate(mainWindow)
-        QtCore.QMetaObject.connectSlotsByName(mainWindow)
+        self.translate(main_window)
+        QtCore.QMetaObject.connectSlotsByName(main_window)
 
         self.init_widgets()
 
     def translate(self, main):
         _translate = QtCore.QCoreApplication.translate
-        main.setWindowTitle(_translate("mainWindow", "TFPS - Train Model"))
-        self.scatsDataLabel.setText(_translate("mainWindow", "Scats Data October 2006 Loaded:"))
-        self.statusLabel.setText(_translate("mainWindow", "<html><head/><body><p><span style=\" color:#ff0000;\">No</span></p></body></html>"))
-        self.loadPushButton.setText(_translate("mainWindow", "Load"))
-        self.modelLabel.setText(_translate("mainWindow", "Model"))
-        self.scatsNumberLabel.setText(_translate("mainWindow", "Scats Number"))
-        self.junctionLabel.setText(_translate("mainWindow", "Junction"))
-        self.trainPushButton.setText(_translate("mainWindow", "Train"))
-
+        main.setWindowTitle(_translate("main_window", "TFPS - Train Model"))
+        self.scats_data_label.setText(_translate("main_window", "Scats Data October 2006 Loaded:"))
+        self.status_label.setText(
+            _translate("main_window",
+                       "<html><head/><body><p><span style=\" color:#ff0000;\">No</span></p></body></html>"))
+        self.load_push_button.setText(_translate("main_window", "Load"))
+        self.model_label.setText(_translate("main_window", "Model"))
+        self.scats_number_label.setText(_translate("main_window", "Scats Number"))
+        self.junction_label.setText(_translate("main_window", "Junction"))
+        self.train_push_button.setText(_translate("main_window", "Train"))
 
     def scats_number_changed(self):
-        index = self.scatsNumberComboBox.currentIndex()
-        value = self.scatsNumberComboBox.itemText(index)
+        index = self.scats_number_combo_box.currentIndex()
+        value = self.scats_number_combo_box.itemText(index)
 
         if value == "All" or value == "":
-            self.junctionComboBox.setCurrentIndex(0)
-            self.junctionComboBox.setEnabled(False)
+            self.junction_combo_box.setCurrentIndex(0)
+            self.junction_combo_box.setEnabled(False)
         else:
-            self.junctionComboBox.clear()
-            self.junctionComboBox.addItem("All")
+            self.junction_combo_box.clear()
 
+            self.junction_combo_box.addItem("All")
             for junction in self.scats_info[value]:
-                self.junctionComboBox.addItem(junction)
+                self.junction_combo_box.addItem(junction)
 
-            self.junctionComboBox.setEnabled(True)
+            self.junction_combo_box.setEnabled(True)
 
     def train(self):
-        scats_number = self.scatsNumberComboBox.itemText(self.scatsNumberComboBox.currentIndex()).lower()
-        junction = resolve_location_id(self.junctionComboBox.itemText(self.junctionComboBox.currentIndex()))
-        model = self.modelComboBox.itemText(self.modelComboBox.currentIndex()).lower()
+        scats_number = self.scats_number_combo_box.itemText(self.scats_number_combo_box.currentIndex()).lower()
+        junction = resolve_location_id(self.junction_combo_box.itemText(self.junction_combo_box.currentIndex()))
+        model = self.model_combo_box.itemText(self.model_combo_box.currentIndex()).lower()
 
         train_with_args(scats_number, junction, model)
 
-
     def init_widgets(self):
         _translate = QtCore.QCoreApplication.translate
+
         if check_data_exists():
-            self.statusLabel.setText(_translate("mainWindow",
-                                                "<html><head/><body><p><span style=\" color:#00FF00;\">Yes</span></p></body></html>"))
-            self.loadPushButton.setEnabled(False)
-            self.scatsNumberComboBox.addItem("All")
-            self.junctionComboBox.addItem("All")
+            self.status_label.setText(_translate("main_window",
+                                                 "<html><head/><body><p><span style=\" color:#00FF00;\">Yes</span></p>"
+                                                 "</body></html>"))
+            self.load_push_button.setEnabled(False)
+            self.scats_number_combo_box.addItem("All")
+            self.junction_combo_box.addItem("All")
+            self.scats_number_combo_box.setEnabled(True)
+            self.train_push_button.setEnabled(True)
         else:
-            self.trainPushButton.setEnabled(False)
-            self.scatsNumberComboBox.setEnabled(False)
-            self.scatsNumberComboBox.addItem("None")
-            self.junctionComboBox.addItem("None")
+            self.train_push_button.setEnabled(False)
+            self.scats_number_combo_box.setEnabled(False)
+            self.scats_number_combo_box.addItem("None")
+            self.junction_combo_box.addItem("None")
 
-        self.junctionComboBox.setEnabled(False)
+        self.junction_combo_box.setEnabled(False)
 
-        self.scatsNumberComboBox.currentIndexChanged.connect(self.scats_number_changed)
+        self.scats_number_combo_box.currentIndexChanged.connect(self.scats_number_changed)
 
         models = ['LSTM', 'GRU', 'SAEs']
         for model in models:
-            self.modelComboBox.addItem(model)
+            self.model_combo_box.addItem(model)
 
         with ScatsDB() as s:
             scats_numbers = s.get_all_scats_numbers()
 
             for scats in scats_numbers:
-                self.scatsNumberComboBox.addItem(str(scats))
+                self.scats_number_combo_box.addItem(str(scats))
 
                 locations = []
                 for junction in s.get_scats_approaches(scats):
@@ -186,17 +193,17 @@ class UiTrain(object):
 
                 self.scats_info[str(scats)] = locations
 
-        self.loadPushButton.clicked.connect(load)
-        self.trainPushButton.clicked.connect(self.multithreaded_output)
+        self.load_push_button.clicked.connect(self.load)
+        self.train_push_button.clicked.connect(self.thread.start)
 
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     app.setStyleSheet("QPlainTextEdit {background-color: black; color:limegreen}")
-    mainWindow = QtWidgets.QMainWindow()
-    ui = UiTrain()
-    ui.setup(mainWindow)
-    mainWindow.show()
+    main_window = QtWidgets.QMainWindow()
+    ui = UiTrain(main_window)
+    ui.setup()
+    main_window.show()
     sys.exit(app.exec_())
-

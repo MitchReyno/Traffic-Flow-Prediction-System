@@ -25,8 +25,6 @@ def format_date(date):
 
 
 def read_data(data):
-    print("Reading in Data...")
-
     dataset = pd.read_excel(data, sheet_name='Data', skiprows=1, parse_dates=['Date'], date_parser=format_date,
                             nrows=200)
     df = pd.DataFrame(dataset)
@@ -49,7 +47,7 @@ def read_data(data):
                 value = row[11 + i]
                 s.insert_scats_data(current_scats, current_junction, current_time, value)
 
-    print("Reading Complete")
+    print("Loading complete")
 
 
 def process_data(scats_number, junction, lags):
