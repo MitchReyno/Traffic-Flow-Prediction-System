@@ -96,5 +96,10 @@ class ScatsDB(object):
         return [item[0] for item in self.cursor.fetchall()]
 
 
+    def get_positional_data(self, scats_number, internal_location):
+        self.cursor.execute("SELECT latitude, longitude FROM scats WHERE scats_number = ? AND internal_location = ?",
+                            (scats_number, internal_location))
+        return self.cursor.fetchone()[0], self.cursor.fetchone()[1]
+
 
 
