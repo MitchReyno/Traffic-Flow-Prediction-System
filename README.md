@@ -29,32 +29,16 @@ $ git clone https://github.com/MitchReyno/Traffic-Flow-Prediction-System
 
 Move the *Scats Data October 2006.xls* file into the data directory of the project. Your folder structure should look like this:
 ```
-|   config.json
-|   config.py
-|   main.py
-|   train.py
-+---data
-|   |   data.py
-|   |   Scats Data October 2006.xls
-|   |   scats.py
-+---model
-|   |   model.py
+|   data.py
+|   Scats Data October 2006.xls
+|   scats.py
 ```
 
-Load the data from the spreadsheet into the application by running *train.py* without any parameters.
+Launch the model training application by running *train_ui.py*.
 ```
-$ python train.py
+python train_ui.py
 ```
-
-Run *train.py* again without any parameters to generate a Long Short-Term Memory model for all SCATS.
-```
-$ python train.py
-```
-
-Alternatively, you can specify specific SCATS/junctions and the neural network model to train by adding special parameters.
-```
-$ python train.py --scats 970 --junction 1 --model lstm
-```
+![Train UI](/TFPS/images/train_ui_screenshot.png)
 
 ### Running the Program
 
@@ -74,10 +58,10 @@ These are the details from the output when the program is executed with the para
 
 ## Authors
 
-* **Jack Howarth-Green** 
-* **Jacob Scott** 
-* **Mitchell Reynolds** 
-* **Nathan Templar** 
+* **Jack Howarth-Green** [101105692@student.swin.edu.au](mailto:101105692@student.swin.edu.au)  
+* **Jacob Scott** [101111327@student.swin.edu.au](mailto:101111327@student.swin.edu.au)  
+* **Mitchell Reynolds** [101109966@student.swin.edu.au](mailto:101109966@student.swin.edu.au)  
+* **Nathan Templar** [101631304@student.swin.edu.au](mailto:101631304@student.swin.edu.au)  
 
 ## Acknowledgments
 
