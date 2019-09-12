@@ -16,6 +16,7 @@ from keras.utils.vis_utils import plot_model
 from sklearn import metrics
 
 from data.data import process_data
+from utility import get_setting
 
 warnings.filterwarnings("ignore")
 
@@ -108,25 +109,26 @@ def main(argv):
     args = parser.parse_args()
 
     models = []
-    names = ['LSTM', 'GRU', 'SAEs']
+    untrained_models = []
+    model_names = ['LSTM', 'GRU', 'SAEs']
 
-    count = 0
-    for name in names:
+    for name in model_names:
         file = "model/{0}/{1}/{2}.h5".format(name.lower(), args.scats, args.junction)
 
         if os.path.exists(file):
             models.append(load_model(file))
         else:
-            names.pop(count)
+            untrained_models.append(name)
 
-        count += 1
+    for name in untrained_models:
+        model_names.remove(name)
 
-    lag = 12
+    lag = get_setting("train")["lag"]
     _, _, x_test, y_test, scaler = process_data(args.scats, args.junction, lag)
     y_test = scaler.inverse_transform(y_test.reshape(-1, 1)).reshape(1, -1)[0]
 
     y_preds = []
-    for name, model in zip(names, models):
+    for name, model in zip(model_names, models):
         if name == 'SAEs':
             x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1]))
         else:
@@ -139,7 +141,7 @@ def main(argv):
         print(name)
         eva_regress(y_test, predicted)
 
-    plot_results(y_test[:96], y_preds, names)
+    plot_results(y_test[:96], y_preds, model_names)
 
 
 if __name__ == '__main__':
