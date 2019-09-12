@@ -12,6 +12,7 @@ from keras.models import Model
 
 from data.data import process_data, check_data_exists
 from data.scats import ScatsDB
+from utility import get_setting
 from model import model
 
 warnings.filterwarnings("ignore")
@@ -108,12 +109,11 @@ def train_with_args(scats, junction, model_to_train):
                 if junction != "all":
                     junctions = [junction]
 
-                lag = 12
-                config = {"batch": 256, "epochs": 600}
+                config = get_setting("train")
 
                 for junction in junctions:
                     print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
-                    x_train, y_train, _, _, _ = process_data(scats_site, junction, lag)
+                    x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
 
                     if model_to_train == 'lstm':
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
