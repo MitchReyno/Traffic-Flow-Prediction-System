@@ -1,6 +1,3 @@
-"""
-Train the NN model.
-"""
 import argparse
 import os
 import sys
@@ -19,19 +16,17 @@ warnings.filterwarnings("ignore")
 
 
 def train_model(model, x_train, y_train, name, scats, junction, config):
-    """train
-    train a single model.
+    """ Train a single model
 
-    # Arguments
-        model: Model, NN model to train.
-        x_train: ndarray(number, lags), Input data for train.
-        y_train: ndarray(number, ), result data for train.
-        name: String, name of model.
-        scats: integer, then number of the SCATS site.
-        junction: integer, the VicRoads internal number representing the location.
-        config: Dict, parameter for train.
+    Parameters:
+        model  (model): neural network model to train
+        x_train (array): input data for training
+        y_train (array): result data for training
+        name (String): name of model
+        scats (int): the number of the SCATS site
+        junction (int): the VicRoads internal number representing the location
+        config (dict): parameter values for training
     """
-
     model.compile(loss="mse", optimizer="rmsprop", metrics=['mape'])
     # early = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='auto')
     hist = model.fit(
@@ -54,20 +49,19 @@ def train_model(model, x_train, y_train, name, scats, junction, config):
     print("Saving {0} loss.csv".format(file))
     print("Training complete")
 
+
 def train_seas(models, x_train, y_train, name, scats, junction, config):
-    """train
-    train the SAEs model.
+    """ Train the SAEs model
 
-    # Arguments
-        models: List, list of SAE model.
-        x_train: ndarray(number, lags), Input data for train.
-        y_train: ndarray(number, ), result data for train.
-        name: String, name of model.
-        scats: integer, then number of the SCATS site.
-        junction: integer, the VicRoads internal number representing the location.
-        config: Dict, parameter for train.
+    Parameters:
+        model  (List<model>): list of sae models to train
+        x_train (array): input data for training
+        y_train (array): result data for training
+        name (String): name of model
+        scats (int): the number of the SCATS site
+        junction (int): the VicRoads internal number representing the location
+        config (dict): parameter values for training
     """
-
     temp = x_train
     # early = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='auto')
 
@@ -96,6 +90,13 @@ def train_seas(models, x_train, y_train, name, scats, junction, config):
 
 
 def train_with_args(scats, junction, model_to_train):
+    """ Start the training process with specific arguments
+
+    Parameters:
+        scats (int): the scats site identifier
+        junction (int): the VicRoads internal id for the location
+        model_to_train (String): the neural network model to train
+    """
     if check_data_exists():
         with ScatsDB() as s:
             scats_numbers = s.get_all_scats_numbers()

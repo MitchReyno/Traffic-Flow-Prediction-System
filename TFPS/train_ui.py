@@ -11,11 +11,14 @@ from utility import ConsoleStream, get_setting
 
 
 class UiTrain(object):
+    """ The user interface for the training part of the program """
     def __init__(self, main):
+        # Sets up a thread for the train function so the GUI won't be blocked from updating
         self.thread = threading.Thread(target=self.train)
 
         self.scats_info = {}
 
+        # Initialises all widgets
         self.main = main
         self.main_widget = QtWidgets.QWidget(main)
         self.output_text_edit = QtWidgets.QPlainTextEdit(self.main_widget)
@@ -44,23 +47,36 @@ class UiTrain(object):
         self.lag_label_layout = QtWidgets.QVBoxLayout()
         self.training_settings_layout = QtWidgets.QHBoxLayout()
 
+        # Makes the console output to the EditText control
         sys.stdout = ConsoleStream(text_output=self.display_output)
 
     def __del__(self):
+        # Reset console output if the interface is closed
         sys.stdout = sys.__stdout__
 
 
     def load(self):
+        """ Loads the excel data into the program """
+        # Let the user know the program is loading
         QApplication.setOverrideCursor(Qt.WaitCursor)
         read_data("data/Scats Data October 2006.xls")
+
+        # Re-initialise the widgets now that data has been loaded
         self.junction_combo_box.clear()
         self.scats_number_combo_box.clear()
         self.model_combo_box.clear()
         self.init_widgets()
+
+        # Restore the cursor so that the user knows that they can interact with the program again
         QApplication.restoreOverrideCursor()
 
 
     def display_output(self, text):
+        """ Adds text to the output control
+
+        Parameters:
+            text  (String): text from the console output
+        """
         cursor = self.output_text_edit.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
         cursor.insertText(text)
@@ -69,6 +85,7 @@ class UiTrain(object):
 
 
     def setup(self):
+        """ Constructs the form, setting fonts, icons, layouts, etc... """
         default_font = QtGui.QFont()
         default_font.setFamily("Arial")
         default_font.setPointSize(10)
@@ -170,6 +187,11 @@ class UiTrain(object):
 
 
     def set_text(self, main):
+        """ Sets the text for all the controls
+
+        Parameters:
+            main  (QMainWindow): the parent object for the interface
+        """
         translate = QtCore.QCoreApplication.translate
         config = get_setting("train")
 
@@ -192,6 +214,7 @@ class UiTrain(object):
 
 
     def scats_number_changed(self):
+        """ Updates the junction combo box when the scats number is changed """
         index = self.scats_number_combo_box.currentIndex()
         value = self.scats_number_combo_box.itemText(index)
 
@@ -209,6 +232,7 @@ class UiTrain(object):
 
 
     def train(self):
+        """ Passes the training parameters to the program """
         scats_number = self.scats_number_combo_box.itemText(self.scats_number_combo_box.currentIndex()).lower()
         junction = get_location_id(self.junction_combo_box.itemText(self.junction_combo_box.currentIndex()))
         model = self.model_combo_box.itemText(self.model_combo_box.currentIndex()).lower()
@@ -217,8 +241,10 @@ class UiTrain(object):
 
 
     def init_widgets(self):
+        """ Sets up the widgets depending on certain conditions """
         _translate = QtCore.QCoreApplication.translate
 
+        # Checks to see if there is already a database with the VicRoads data
         if check_data_exists():
             self.status_label.setText(_translate("main_window",
                                                  "<html><head/><body><p><span style=\" color:#00FF00;\">Yes</span></p>"
@@ -255,6 +281,7 @@ class UiTrain(object):
 
                 self.scats_info[str(scats)] = locations
 
+        # Adds functionality to the buttons
         self.load_push_button.clicked.connect(self.load)
         self.train_push_button.clicked.connect(self.thread.start)
 

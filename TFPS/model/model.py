@@ -1,21 +1,17 @@
-"""
-Defination of NN model
-"""
 from keras.layers import Dense, Dropout, Activation
 from keras.layers.recurrent import LSTM, GRU
 from keras.models import Sequential
 
 
 def get_lstm(units):
-    """LSTM(Long Short-Term Memory)
-    Build LSTM Model.
+    """ Build LSTM model
 
-    # Arguments
-        units: List(int), number of input, output and hidden units.
-    # Returns
-        model: Model, nn model.
+    Parameters:
+        units (list<int>): number of input, output and hidden units
+
+    Returns:
+        model: Model, nn model
     """
-
     model = Sequential()
     model.add(LSTM(units[1], input_shape=(units[0], 1), return_sequences=True))
     model.add(LSTM(units[2]))
@@ -26,15 +22,14 @@ def get_lstm(units):
 
 
 def get_gru(units):
-    """GRU(Gated Recurrent Unit)
-    Build GRU Model.
+    """ Build GRU model
 
-    # Arguments
-        units: List(int), number of input, output and hidden units.
-    # Returns
-        model: Model, nn model.
+    Parameters:
+        units (list<int>): number of input, output and hidden units
+
+    Returns:
+        model: Model, nn model
     """
-
     model = Sequential()
     model.add(GRU(units[1], input_shape=(units[0], 1), return_sequences=True))
     model.add(GRU(units[2]))
@@ -45,17 +40,16 @@ def get_gru(units):
 
 
 def _get_sae(inputs, hidden, output):
-    """SAE(Auto-Encoders)
-    Build SAE Model.
+    """ Build SAE model
 
-    # Arguments
-        inputs: Integer, number of input units.
-        hidden: Integer, number of hidden units.
-        output: Integer, number of output units.
-    # Returns
-        model: Model, nn model.
+    Parameters:
+        inputs (int): number of input units
+        hidden (int): number of hidden units
+        output (int): number of output units
+
+    Returns:
+        model: Model, nn model
     """
-
     model = Sequential()
     model.add(Dense(hidden, input_dim=inputs, name='hidden'))
     model.add(Activation('sigmoid'))
@@ -66,13 +60,13 @@ def _get_sae(inputs, hidden, output):
 
 
 def get_saes(layers):
-    """SAEs(Stacked Auto-Encoders)
-    Build SAEs Model.
+    """ Build SAEs model
 
-    # Arguments
-        layers: List(int), number of input, output and hidden units.
-    # Returns
-        models: List(Model), List of SAE and SAEs.
+    Parameters:
+        layers (list<int>): number of input, output and hidden units
+
+    Returns:
+        list<model>: List of SAE and SAEs
     """
     sae1 = _get_sae(layers[0], layers[1], layers[-1])
     sae2 = _get_sae(layers[1], layers[2], layers[-1])

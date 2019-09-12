@@ -1,6 +1,3 @@
-"""
-Traffic Flow Prediction with Neural Networks(SAEs、LSTM、GRU).
-"""
 import argparse
 import math
 import os
@@ -20,16 +17,17 @@ from utility import get_setting
 
 warnings.filterwarnings("ignore")
 
-def MAPE(y_true, y_pred):
-    """Mean Absolute Percentage Error
-    Calculate the mape.
-    # Arguments
-        y_true: List/ndarray, ture data.
-        y_pred: List/ndarray, predicted data.
-    # Returns
-        mape: Double, result data for train.
-    """
 
+def MAPE(y_true, y_pred):
+    """ Calculate the Mean Absolute Percentage Error
+
+    Parameters:
+        y_true (array): true data
+        y_pred (array): predicted data
+
+    Returns:
+        double: result data for training
+    """
     y = [x for x in y_true if x > 0]
     y_pred = [y_pred[i] for i in range(len(y_true)) if y_true[i] > 0]
 
@@ -46,13 +44,12 @@ def MAPE(y_true, y_pred):
 
 
 def eva_regress(y_true, y_pred):
-    """Evaluation
-    evaluate the predicted resul.
-    # Arguments
-        y_true: List/ndarray, ture data.
-        y_pred: List/ndarray, predicted data.
-    """
+    """ Evaluate the predicted result
 
+    Parameters:
+        y_true (array): true data
+        y_pred (array): predicted data
+    """
     mape = MAPE(y_true, y_pred)
     vs = metrics.explained_variance_score(y_true, y_pred)
     mae = metrics.mean_absolute_error(y_true, y_pred)
@@ -67,14 +64,16 @@ def eva_regress(y_true, y_pred):
 
 
 def plot_results(y_true, y_preds, names):
-    """Plot
-    Plot the true data and predicted data.
-    # Arguments
-        y_true: List/ndarray, ture data.
-        y_pred: List/ndarray, predicted data.
-        names: List, Method names.
+    """ Plot the true data and predicted data
+
+    Parameters:
+        y_true (array): true data
+        y_preds (array): predicted data
+        names (list<String>): model names
     """
     d = '2006-10-22 00:00'
+
+    # 1440 minutes in a day = 96x 15 minute periods
     x = pd.date_range(d, periods=96, freq='15min')
 
     fig = plt.figure()
@@ -112,7 +111,10 @@ def main(argv):
     untrained_models = []
     model_names = ['LSTM', 'GRU', 'SAEs']
 
+    """ Getting the trained models is split into two parts 
+        because of some issues when removing items from a list that is being iterated over """
     for name in model_names:
+        # Construct the path to the file
         file = "model/{0}/{1}/{2}.h5".format(name.lower(), args.scats, args.junction)
 
         if os.path.exists(file):
@@ -121,6 +123,7 @@ def main(argv):
             untrained_models.append(name)
 
     for name in untrained_models:
+        # Remove all untrained models so they are not included on the graph
         model_names.remove(name)
 
     lag = get_setting("train")["lag"]
