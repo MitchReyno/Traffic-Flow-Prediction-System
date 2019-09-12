@@ -1,11 +1,20 @@
 """
 Processing the data
 """
+import os
+from math import asin
+from time import gmtime, strftime
+
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from time import gmtime, strftime
+
 from data.scats import ScatsDB
+from utility import get_setting
+
+
+def check_data_exists():
+    return os.path.exists("data/{0}".format(get_setting("database")))
 
 
 def format_time(index):
@@ -28,16 +37,18 @@ def read_data(data):
             if row[1] != current_scats:
                 current_scats = row[1]
                 current_junction = row[8]
-                s.insert_new_scats(current_scats, current_junction, row[4], row[5])
+                s.insert_new_scats(current_scats, current_junction, row[2], row[4], row[5])
             else:
                 if row[8] != current_junction:
                     current_junction = row[8]
-                    s.insert_new_scats(current_scats, current_junction, row[4], row[5])
+                    s.insert_new_scats(current_scats, current_junction, row[2], row[4], row[5])
 
             for i in range(96):
                 current_time = row[10] + " " + format_time(i)
                 value = row[11 + i]
                 s.insert_scats_data(current_scats, current_junction, current_time, value)
+
+    print("Loading complete")
 
 
 def process_data(scats_number, junction, lags):
@@ -83,3 +94,35 @@ def process_data(scats_number, junction, lags):
         y_test = test[:, -1]
 
         return x_train, y_train, x_test, y_test, scaler
+
+
+def get_location_id(location_name):
+    if location_name != "All":
+        with ScatsDB() as s:
+            location = s.get_location_id(location_name)
+    else:
+        location = "all"
+
+    return location
+
+
+def distance_between_points(o_scats, o_junction, d_scats, d_junction):
+    earth_radius = 6371
+
+    with ScatsDB() as s:
+        o_latitude, o_longitude = s.get_positional_data(o_scats, o_junction)
+        d_latitude, d_longitude = s.get_positional_data(d_scats, d_junction)
+
+        o_latitude, o_longitude, d_latitude, d_longitude = \
+            map(np.radians, (o_latitude, o_longitude, d_latitude, d_longitude))
+
+        dist_latitude = d_latitude - o_latitude
+        dist_longitude = d_longitude - o_longitude
+
+        h = np.sin(dist_latitude / 2) ** 2 + np.cos(o_latitude) * np.cos(d_latitude) * np.sin(
+            dist_longitude / 2) ** 2
+
+        return 2 * earth_radius * asin(np.sqrt(h))
+
+
+
