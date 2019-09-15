@@ -7,12 +7,17 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 from data.scats import ScatsDB
-from utility import get_setting
 
 
 def check_data_exists():
-    """ Returns True if the db file exists in the data folder """
-    return os.path.exists("data/{0}".format(get_setting("database")))
+    """ Returns True if the db is populated with some data """
+    not_empty = False
+
+    with ScatsDB() as s:
+        if s.count_data() > 0:
+            not_empty = True
+
+    return not_empty
 
 
 def format_time(index):

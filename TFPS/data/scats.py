@@ -105,6 +105,12 @@ class ScatsDB(object):
         return [item[0] for item in self.cursor.fetchall()]
 
 
+    def count_data(self):
+        """ Counts the number of rows in the database """
+        self.cursor.execute("SELECT COUNT(*) from scats")
+        return self.cursor.fetchone()[0]
+
+
     def get_location_name(self, scats_number, internal_location):
         """ Gets the name of the location given it's VicRoads internal identifier
 

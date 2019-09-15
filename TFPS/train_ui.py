@@ -221,6 +221,9 @@ class UiTrain(object):
         if value == "All" or value == "":
             self.junction_combo_box.setCurrentIndex(0)
             self.junction_combo_box.setEnabled(False)
+        elif value == "None":
+            self.scats_number_combo_box.setEnabled(False)
+            self.junction_combo_box.setEnabled(False)
         else:
             self.junction_combo_box.clear()
 
