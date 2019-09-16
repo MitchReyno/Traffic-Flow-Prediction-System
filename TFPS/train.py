@@ -118,6 +118,9 @@ def train_with_args(scats, junction, model_to_train):
                     print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
                     x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
 
+                    print(f"XTRAIN: {x_train} YTRAIN: {y_train}")
+                    return
+
                     if model_to_train == 'lstm':
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
                         m = model.get_lstm([12, 64, 64, 1])
@@ -134,7 +137,8 @@ def train_with_args(scats, junction, model_to_train):
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
                         model = keras.Sequential([
                             keras.layers.Flatten(input_shape=(12, 1)),
-                            keras.layers.Dense(128, activation=tf.nn.relu),
+                            keras.layers.Dense(64, activation=tf.nn.relu),
+                            keras.layers.Dense(64, activation=tf.nn.relu),
                             keras.layers.Dense(1, activation=tf.nn.softmax)
                         ])
                         train_model(model, x_train, y_train, model_to_train, scats_site, junction, config)
@@ -144,11 +148,11 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--scats",
-        default="all",
+        default="970",
         help="SCATS site number.")
     parser.add_argument(
         "--junction",
-        default="all",
+        default="1",
         help="The approach to the site.")
     parser.add_argument(
         "--model",
