@@ -109,7 +109,7 @@ def main(argv):
 
     models = []
     untrained_models = []
-    model_names = ['LSTM', 'GRU', 'SAEs']
+    model_names = ['LSTM', 'GRU', 'SAEs', 'FEEDFWD']
 
     """ Getting the trained models is split into two parts 
         because of some issues when removing items from a list that is being iterated over """

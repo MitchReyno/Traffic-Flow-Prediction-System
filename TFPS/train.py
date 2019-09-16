@@ -5,6 +5,8 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import tensorflow as tf
+import keras
 from keras.models import Model
 
 from data.data import process_data, check_data_exists
@@ -128,6 +130,14 @@ def train_with_args(scats, junction, model_to_train):
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
                         m = model.get_saes([12, 400, 400, 400, 1])
                         train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
+                    if model_to_train == "feedfwd":
+                        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+                        model = keras.Sequential([
+                            keras.layers.Flatten(input_shape=(12, 1)),
+                            keras.layers.Dense(128, activation=tf.nn.relu),
+                            keras.layers.Dense(1, activation=tf.nn.softmax)
+                        ])
+                        train_model(model, x_train, y_train, model_to_train, scats_site, junction, config)
 
 
 def main(argv):
@@ -142,7 +152,7 @@ def main(argv):
         help="The approach to the site.")
     parser.add_argument(
         "--model",
-        default="lstm",
+        default="feedfwd",
         help="Model to train.")
     args = parser.parse_args()
 
