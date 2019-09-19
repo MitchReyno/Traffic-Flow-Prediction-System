@@ -4,5 +4,6 @@
     "lag": 12,
     "batch": 256,
     "epochs": 600
-  }
+  },
+  "model": "LSTM"
 }

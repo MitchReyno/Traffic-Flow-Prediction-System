@@ -4,9 +4,11 @@ from time import gmtime, strftime
 
 import numpy as np
 import pandas as pd
+from keras.engine.saving import load_model
 from sklearn.preprocessing import MinMaxScaler
 
 from data.scats import ScatsDB
+from utility import get_setting
 
 
 def check_data_exists():
@@ -18,6 +20,23 @@ def check_data_exists():
             not_empty = True
 
     return not_empty
+
+
+def format_time_to_index(time):
+    """ Converts a time value into a index
+
+    Parameters:
+        time (String): the time value
+
+    Returns:
+        int: an index that represents the time
+    """
+    time_places = time.split(":")
+    hours = int(time_places[0])
+    minutes = int(time_places[1])
+    total_minutes = hours * 60 + minutes
+
+    return (0, total_minutes / 15)[total_minutes > 0]
 
 
 def format_time(index):
@@ -147,7 +166,7 @@ def get_location_id(location_name):
     return location
 
 
-def distance_between_points(o_scats, o_junction, d_scats, d_junction):
+def get_distance_between_points(o_scats, o_junction, d_scats, d_junction):
     """ Finds the great-circle distance between two points
 
     Parameters:
@@ -181,4 +200,35 @@ def distance_between_points(o_scats, o_junction, d_scats, d_junction):
         return 2 * earth_radius * asin(np.sqrt(h))
 
 
+def get_volume(scats, junction, time):
+    """ Gets the predicted volume for a scats location at a particular time
 
+    Parameters:
+        scats (int): the number of the SCATS site
+        junction (int): the VicRoads internal number representing the location
+        time (String): the time of day in the format of ##:##
+
+    Returns:
+        int: the volume of traffic
+    """
+    model = None
+
+    model_name = get_setting("model").lower()
+    file = "model/{0}/{1}/{2}.h5".format(model_name, scats, junction)
+
+    if os.path.exists(file):
+        model = load_model(file)
+
+    lag = get_setting("train")["lag"]
+    _, _, x_test, y_test, scaler = process_data(scats, junction, lag)
+
+    if model_name == 'SAEs':
+        x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1]))
+    else:
+        x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+
+    predicted = model.predict(x_test)
+    predicted = scaler.inverse_transform(predicted.reshape(-1, 1)).reshape(1, -1)[0]
+    volume_data = predicted[:96]
+
+    return volume_data[int(format_time_to_index(time))]
