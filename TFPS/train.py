@@ -118,7 +118,7 @@ def train_with_args(scats, junction, model_to_train):
                     print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
                     x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
 
-                    print(f"XTRAIN: {x_train} YTRAIN: {y_train}")
+                    print(f"XTRAIN: {x_train} \n YTRAIN: {y_train}")
                     return
 
                     if model_to_train == 'lstm':
