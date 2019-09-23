@@ -100,19 +100,31 @@ def process_data(scats_number, junction, lags):
     """
     with ScatsDB() as s:
         volume_data = s.get_scats_volume(scats_number, junction)
+        print(f"(data.py) VOLUME DATA: {volume_data[:10]}")
+        print(f"(data.py) VOLUME DATA SHAPE: {volume_data.shape}")
         # Training using the first 3 weeks.
         volume_training = volume_data[:2016]
         # Testing using the remaining days of the month.
         volume_testing = volume_data[2016:]
 
         # scaler = StandardScaler().fit(volume.values)
+        # Fit training data between feature range (0-1) | Reshape array to be (unknown, 1)
         scaler = MinMaxScaler(feature_range=(0, 1)).fit(volume_training.reshape(-1, 1))
+        print(f"(data.py) SCALER: {scaler}")
+        print(f"(data.py) SCALER TRAIN VOLUME SHAPE: {volume_training.reshape(-1, 1).shape}")
         flow1 = scaler.transform(volume_training.reshape(-1, 1)).reshape(1, -1)[0]
+        print(f"(data.py) FLOW1 ELEMENTS: {flow1[:5]}")
+        print(f"(data.py) FLOW1 SHAPE: {flow1.shape}")
         flow2 = scaler.transform(volume_testing.reshape(-1, 1)).reshape(1, -1)[0]
+        print(f"(data.py) FLOW2 ELEMENTS: {flow2[:5]}")
+        print(f"(data.py) FLOW2 SHAPE: {flow2.shape}")
 
+        print(f"(data.py) LAGS: {lags}")
+        print(f"(data.py) APPENDED DATA: {flow1[1000 - lags: 1000 + 1]}")
         train, test = [], []
         for i in range(lags, len(flow1)):
-            train.append(flow1[i - lags: i + 1])
+            train.append(flow1[i - lags: i + 1]) # from i - lags to i + 1 -  Appending batches of 12 items?
+            print(f"(data.py) APPENDED DATA: i = {i} flow = {flow1[i - lags: i + 1]}")
         for i in range(lags, len(flow2)):
             test.append(flow2[i - lags: i + 1])
 

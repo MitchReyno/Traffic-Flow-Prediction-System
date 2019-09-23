@@ -101,18 +101,23 @@ def train_with_args(scats, junction, model_to_train):
     """
     if check_data_exists():
         with ScatsDB() as s:
-            scats_numbers = s.get_all_scats_numbers()
+            scats_numbers = s.get_all_scats_numbers()               # Get scats numbers in array, e,g: [970, 2000]
+            print(f"(train.py) SCATS NUMBERS: {scats_numbers}")
 
             if scats != "all":
                 scats_numbers = [scats]
 
             for scats_site in scats_numbers:
-                junctions = s.get_scats_approaches(scats_site)
+                junctions = s.get_scats_approaches(scats_site)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
+                print(f"(train.py) SCATS SITES: {junctions}")
 
-                if junction != "all":
+                if junction != "all":                               # If the junction in args is not all...
                     junctions = [junction]
+                    print(f"(train.py) SCATS SITES: {junctions}")   # ... set args to be the junctions e.g.: ['1']
+                                                                    # TODO: Determine if strings are an issue here
 
-                config = get_setting("train")
+                config = get_setting("train")  # Get the config, e.g: {'lag': 12, 'batch': 256, 'epochs': 600}
+                print(f"(train.py) config: {config}")
 
                 for junction in junctions:
                     print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
