@@ -126,7 +126,6 @@ def train_with_args(scats, junction, model_to_train):
                     print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
                     print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
 
-
                     if model_to_train == 'lstm':
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
                         m = model.get_lstm([12, 64, 64, 1])
@@ -141,21 +140,21 @@ def train_with_args(scats, junction, model_to_train):
                         train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
                     if model_to_train == "feedfwd":
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                        model = keras.Sequential([
+                        m = keras.Sequential([
                             keras.layers.Flatten(input_shape=(12, 1)),
                             keras.layers.Dense(64, activation=tf.nn.sigmoid),
                             keras.layers.Dense(1, activation=tf.nn.sigmoid)
                         ])
-                        train_model(model, x_train, y_train, model_to_train, scats_site, junction, config)
+                        train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
                     if model_to_train == "deepfeedfwd":
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                        model = keras.Sequential([
+                        m = keras.Sequential([
                             keras.layers.Flatten(input_shape=(12, 1)),
                             keras.layers.Dense(64, activation=tf.nn.sigmoid),
                             keras.layers.Dense(64, activation=tf.nn.sigmoid),
                             keras.layers.Dense(1, activation=tf.nn.sigmoid)
                         ])
-                        train_model(model, x_train, y_train, model_to_train, scats_site, junction, config)
+                        train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
 
 
 def main(argv):
@@ -170,7 +169,7 @@ def main(argv):
         help="The approach to the site.")
     parser.add_argument(
         "--model",
-        default="feedfwd",
+        default="saes",
         help="Model to train.")
     args = parser.parse_args()
 

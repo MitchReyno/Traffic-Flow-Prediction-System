@@ -55,12 +55,33 @@ def eva_regress(y_true, y_pred):
     mae = metrics.mean_absolute_error(y_true, y_pred)
     mse = metrics.mean_squared_error(y_true, y_pred)
     r2 = metrics.r2_score(y_true, y_pred)
+
+    mtx = {
+        "mape": mape,
+        "evs": vs,
+        "mae": mae,
+        "mse": mse,
+        "rmse": math.sqrt(mse),
+        "r2": r2
+    }
+
     print('explained_variance_score:%f' % vs)
     print('mape:%f%%' % mape)
     print('mae:%f' % mae)
     print('mse:%f' % mse)
     print('rmse:%f' % math.sqrt(mse))
     print('r2:%f' % r2)
+
+    return mtx
+
+
+def plot_error(mtx):
+    fig = plt.figure(figsize=(7, 5))
+    labels = ["Mape", "EVS", "MAE", "MSE", "RMSE", "R2"]
+    model_names = ['LSTM', 'GRU', 'SAEs', 'FEEDFWD', 'DEEPFEEDFWD']
+
+
+    return
 
 
 def plot_results(y_true, y_preds, names):
@@ -109,7 +130,7 @@ def main(argv):
 
     models = []
     untrained_models = []
-    model_names = ['LSTM', 'GRU', 'SAEs', 'FEEDFWD', "DEEPFEEDFWD"]
+    model_names = ['LSTM', 'GRU', 'SAEs', 'FEEDFWD', 'DEEPFEEDFWD']
 
     """ Getting the trained models is split into two parts 
         because of some issues when removing items from a list that is being iterated over """
@@ -131,6 +152,7 @@ def main(argv):
     y_test = scaler.inverse_transform(y_test.reshape(-1, 1)).reshape(1, -1)[0]
 
     y_preds = []
+    mtx = []
     for name, model in zip(model_names, models):
         if name == 'SAEs':
             x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1]))
@@ -142,9 +164,10 @@ def main(argv):
         predicted = scaler.inverse_transform(predicted.reshape(-1, 1)).reshape(1, -1)[0]
         y_preds.append(predicted[:96])
         print(name)
-        eva_regress(y_test, predicted)
+        mtx.append(eva_regress(y_test, predicted))
 
     plot_results(y_test[:96], y_preds, model_names)
+    plot_error(mtx)
 
 
 if __name__ == '__main__':
