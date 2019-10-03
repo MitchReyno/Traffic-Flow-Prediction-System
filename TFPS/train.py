@@ -117,13 +117,14 @@ def train_with_args(scats, junction, model_to_train):
                                                                     # TODO: Determine if strings are an issue here
 
                 config = get_setting("train")  # Get the config, e.g: {'lag': 12, 'batch': 256, 'epochs': 600}
-                print(f"(train.py) config: {config}")
+                print(f"(train.py) CONFIG: {config}")
 
                 for junction in junctions:
                     print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
                     x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
 
-                    print(f"XTRAIN: {x_train} \n YTRAIN: {y_train}")
+                    print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
+                    print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
                     return
 
                     if model_to_train == 'lstm':

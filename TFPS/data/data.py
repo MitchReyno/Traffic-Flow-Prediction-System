@@ -123,19 +123,24 @@ def process_data(scats_number, junction, lags):
         print(f"(data.py) APPENDED DATA: {flow1[1000 - lags: 1000 + 1]}")
         train, test = [], []
         for i in range(lags, len(flow1)):
-            train.append(flow1[i - lags: i + 1]) # from i - lags to i + 1 -  Appending batches of 12 items?
-            print(f"(data.py) APPENDED DATA: i = {i} flow = {flow1[i - lags: i + 1]}")
+            train.append(flow1[i - lags: i + 1])  # from i - lags to i + 1 -  Appending batches of 13 items?
         for i in range(lags, len(flow2)):
             test.append(flow2[i - lags: i + 1])
 
         train = np.array(train)
         test = np.array(test)
-        np.random.shuffle(train)
+        print(f"(data.py) TRAIN SHAPE: {train.shape}")
+        print(f"(data.py) TEST SHAPE: {test.shape}")
 
-        x_train = train[:, :-1]
-        y_train = train[:, -1]
-        x_test = test[:, :-1]
-        y_test = test[:, -1]
+        np.random.shuffle(train)    # Shuffle training data
+
+        x_train = train[:, :-1]     # Training data         Remove 1 as we're only interested in lags time steps
+        y_train = train[:, -1]      # Training labels       Drop right column so we're left with labels.
+        x_test = test[:, :-1]       # Testing data
+        y_test = test[:, -1]        # Testing labels
+
+        print(f"(data.py) XTRAIN SHAPE: {x_train.shape}")
+        print(f"(data.py) YTRAIN SHAPE: {y_train.shape}")
 
         return x_train, y_train, x_test, y_test, scaler
 
