@@ -4,6 +4,7 @@ import os.path
 
 import numpy as np
 import pandas as pd
+import overpass as op
 import unicodecsv
 import xlrd
 
@@ -49,6 +50,9 @@ class ScatsData(object):
     """ Stores and retrieves the VicRoads data """
     DATA_SOURCE = "data/Scats Data October 2006.xls"
     CSV_FILE = "data/Scats Data.csv"
+    CONVENTIONS = {"RD": "Road",
+                   "ST": "Street",
+                   "HWY": "Highway"}
 
     def __init__(self):
         if not os.path.exists(self.CSV_FILE):
@@ -138,4 +142,54 @@ class ScatsData(object):
         """
         raw_data = self.data.loc[(self.data[0] == scats_number) & (self.data[7] == location)]
 
-        return raw_data[3].loc[0], raw_data[4].loc[0]
+        return raw_data.iloc[0][3], raw_data.iloc[0][4]
+
+    def get_speed_limit(self, begin_scats_number, begin_location, end_scats_number, end_location):
+        """ Gets the speed limit for a section of road from OpenStreetMaps
+
+        Parameters:
+            begin_scats_number (int): the scats site identifier for the start of the road
+            begin_location (int): the VicRoads internal id/direction for the start of the road
+            end_scats_number (int): the scats site identifier for the end of the road
+            end_location (int): the VicRoads internal id/direction for the end of the road
+
+        Returns:
+            int: the speed limit of the road (in km/h)
+        """
+        speed_limit = 60
+        api = op.API(endpoint="https://lz4.overpass-api.de/api/interpreter", timeout=60)
+
+        s_latitude, s_longitude = self.get_positional_data(begin_scats_number, begin_location)
+        e_latitude, e_longitude = self.get_positional_data(end_scats_number, end_location)
+
+        location = (self.get_location_name(begin_scats_number, begin_location)).split("_")
+
+        road_name = location[0].title()
+        road_type = self.CONVENTIONS[location[1].split(" ")[0]]
+        name = "{0} {1}".format(road_name, road_type)
+
+        way = 'way["name"~"{0}"]({1},{2},{3},{4});(._;>;)'
+        if s_latitude < e_latitude:
+            if s_longitude < e_longitude:
+                way = way.format(road_name, s_latitude, s_longitude, e_latitude, e_longitude)
+            else:
+                way = way.format(road_name, s_latitude, e_longitude, e_latitude, s_longitude)
+        else:
+            if s_longitude < e_longitude:
+                way = way.format(road_name, e_latitude, s_longitude, s_latitude, e_longitude)
+            else:
+                way = way.format(road_name, e_latitude, e_longitude, s_latitude, s_longitude)
+
+        data = api.get(way, verbosity='geom')
+        for feature in data["features"]:
+            properties = feature["properties"]
+
+            name_fields = ["name", "alt-name"]
+            for name_field in name_fields:
+                if name_field in properties.keys():
+                    if properties[name_field] == name:
+                        if "maxspeed" in properties.keys():
+                            speed_limit = int(properties["maxspeed"])
+
+
+        return speed_limit
