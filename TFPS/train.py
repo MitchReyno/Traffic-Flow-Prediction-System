@@ -140,20 +140,11 @@ def train_with_args(scats, junction, model_to_train):
                         train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
                     if model_to_train == "feedfwd":
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                        m = keras.Sequential([
-                            keras.layers.Flatten(input_shape=(12, 1)),
-                            keras.layers.Dense(64, activation=tf.nn.sigmoid),
-                            keras.layers.Dense(1, activation=tf.nn.sigmoid)
-                        ])
+                        m = model.get_feed_fwd([12, 64, 1])
                         train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
                     if model_to_train == "deepfeedfwd":
                         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                        m = keras.Sequential([
-                            keras.layers.Flatten(input_shape=(12, 1)),
-                            keras.layers.Dense(64, activation=tf.nn.sigmoid),
-                            keras.layers.Dense(64, activation=tf.nn.sigmoid),
-                            keras.layers.Dense(1, activation=tf.nn.sigmoid)
-                        ])
+                        m = model.get_deep_feed_fwd([12, 64, 64, 1])
                         train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
 
 
@@ -169,7 +160,7 @@ def main(argv):
         help="The approach to the site.")
     parser.add_argument(
         "--model",
-        default="saes",
+        default="feedfwd",
         help="Model to train.")
     args = parser.parse_args()
 

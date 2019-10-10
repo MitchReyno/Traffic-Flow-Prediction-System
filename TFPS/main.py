@@ -76,10 +76,40 @@ def eva_regress(y_true, y_pred):
 
 
 def plot_error(mtx):
-    fig = plt.figure(figsize=(7, 5))
-    labels = ["Mape", "EVS", "MAE", "MSE", "RMSE", "R2"]
-    model_names = ['LSTM', 'GRU', 'SAEs', 'FEEDFWD', 'DEEPFEEDFWD']
+    """ Plot error metrics for each model
 
+        Parameters:
+            mtx (array):
+        """
+
+    labels = ["MAPE", "EVS", "MAE", "MSE", "RMSE", "R2"]
+    model_names = ['LSTM', 'GRU', 'SAEs', 'FF', 'DFF']
+    positions = [0, 1, 2, 3, 4]
+
+    mape, evs, mae, mse, rmse, r2 = [], [], [], [], [], []
+
+    for i in mtx:                   # Get a list of error for each metric (per model)
+        mape.append(i["mape"])
+        evs.append(i["evs"])
+        mae.append(i["mae"])
+        mse.append(i["mse"])
+        rmse.append(i["rmse"])
+        r2.append(i["r2"])
+
+    error_measurements = [mape, evs, mae, mse, rmse, r2]
+    
+    i = 0
+    plt.figure(figsize=(10, 10))
+    for em in error_measurements:
+        plt.subplot(3, 2, i + 1)
+        plt.bar(positions, em, width=.5)
+        plt.xticks(positions, model_names)
+        plt.title(labels[i])
+        if labels[i] == "EVS" or labels[i] == "R2":
+            plt.ylim(0.9, 1)
+        i += 1
+
+    plt.show()
 
     return
 
@@ -168,7 +198,10 @@ def main(argv):
 
     plot_results(y_test[:96], y_preds, model_names)
     plot_error(mtx)
-
+    mae = "mae"
+    print(f"\nMTX: {mtx}")
+    print(f"\n{mtx[0][mae]}")
+    print(f"\n{mtx[0].keys()}")
 
 if __name__ == '__main__':
     main(sys.argv)
