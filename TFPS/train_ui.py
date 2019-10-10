@@ -1,21 +1,19 @@
 import threading
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication
 
-from data.data import read_data, check_data_exists, get_location_id
+from data.scats import ScatsData
 from train import train_with_args
-from data.scats import ScatsDB
 from utility import ConsoleStream, get_setting
+
+
+SCATS_DATA = ScatsData()
 
 
 class UiTrain(object):
     """ The user interface for the training part of the program """
     def __init__(self, main):
-        # Sets up a thread for the train function so the GUI won't be blocked from updating
-        self.thread = threading.Thread(target=self.train)
-
+        self.threads = []
         self.scats_info = {}
 
         # Initialises all widgets
@@ -31,10 +29,6 @@ class UiTrain(object):
         self.model_combo_box = QtWidgets.QComboBox(self.main_widget)
         self.model_label = QtWidgets.QLabel(self.main_widget)
         self.settings_layout = QtWidgets.QFormLayout()
-        self.load_push_button = QtWidgets.QPushButton(self.main_widget)
-        self.status_label = QtWidgets.QLabel(self.main_widget)
-        self.scats_data_label = QtWidgets.QLabel(self.main_widget)
-        self.scats_data_layout = QtWidgets.QHBoxLayout()
         self.vertical_layout = QtWidgets.QVBoxLayout(self.main_widget)
         self.epochs_value_label = QtWidgets.QLabel(self.main_widget)
         self.epochs_label = QtWidgets.QLabel(self.main_widget)
@@ -54,21 +48,8 @@ class UiTrain(object):
         # Reset console output if the interface is closed
         sys.stdout = sys.__stdout__
 
-
-    def load(self):
-        """ Loads the excel data into the program """
-        # Let the user know the program is loading
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        read_data("data/Scats Data October 2006.xls")
-
-        # Re-initialise the widgets now that data has been loaded
-        self.junction_combo_box.clear()
-        self.scats_number_combo_box.clear()
-        self.model_combo_box.clear()
-        self.init_widgets()
-
-        # Restore the cursor so that the user knows that they can interact with the program again
-        QApplication.restoreOverrideCursor()
+        for thread in self.threads:
+            thread.join()
 
 
     def display_output(self, text):
@@ -101,17 +82,6 @@ class UiTrain(object):
         self.main_widget.setObjectName("main_widget")
         self.main.setWindowIcon(QtGui.QIcon('images/traffic_jam_64px.png'))
         self.vertical_layout.setObjectName("vertical_layout")
-        self.scats_data_layout.setObjectName("scats_data_layout")
-        self.scats_data_label.setFont(default_font)
-        self.scats_data_label.setObjectName("scats_data_label")
-        self.scats_data_layout.addWidget(self.scats_data_label)
-        self.status_label.setFont(default_font)
-        self.status_label.setObjectName("status_label")
-        self.scats_data_layout.addWidget(self.status_label)
-        self.load_push_button.setFont(default_font)
-        self.load_push_button.setObjectName("load_push_button")
-        self.scats_data_layout.addWidget(self.load_push_button)
-        self.vertical_layout.addLayout(self.scats_data_layout)
         self.settings_layout.setFormAlignment(QtCore.Qt.AlignCenter)
         self.settings_layout.setObjectName("settings_layout")
         self.model_label.setFont(default_font)
@@ -196,11 +166,6 @@ class UiTrain(object):
         config = get_setting("train")
 
         main.setWindowTitle(translate("main_window", "TFPS - Train Model"))
-        self.scats_data_label.setText(translate("main_window", "Scats Data October 2006 Loaded:"))
-        self.status_label.setText(
-            translate("main_window",
-                       "<html><head/><body><p><span style=\" color:#ff0000;\">No</span></p></body></html>"))
-        self.load_push_button.setText(translate("main_window", "Load"))
         self.model_label.setText(translate("main_window", "Model"))
         self.scats_number_label.setText(translate("main_window", "Scats Number"))
         self.junction_label.setText(translate("main_window", "Junction"))
@@ -229,64 +194,59 @@ class UiTrain(object):
 
             self.junction_combo_box.addItem("All")
             for junction in self.scats_info[value]:
-                self.junction_combo_box.addItem(junction)
+                self.junction_combo_box.addItem(str(junction))
 
             self.junction_combo_box.setEnabled(True)
 
 
     def train(self):
         """ Passes the training parameters to the program """
-        scats_number = self.scats_number_combo_box.itemText(self.scats_number_combo_box.currentIndex()).lower()
-        junction = get_location_id(self.junction_combo_box.itemText(self.junction_combo_box.currentIndex()))
+        scats_number = int(self.scats_number_combo_box.itemText(self.scats_number_combo_box.currentIndex()))
+        junction = int(SCATS_DATA.get_location_id(self.junction_combo_box.itemText(
+            self.junction_combo_box.currentIndex())))
         model = self.model_combo_box.itemText(self.model_combo_box.currentIndex()).lower()
 
         train_with_args(scats_number, junction, model)
 
 
+    def train_process(self):
+        """ Runs the training with threads """
+        training_threads = []
+        t = threading.Thread(target=self.train)
+        training_threads.append(t)
+        self.threads.append(t)
+
+        for thread in training_threads:
+            thread.start()
+
+
     def init_widgets(self):
-        """ Sets up the widgets depending on certain conditions """
+        """ Sets up the widgets """
         _translate = QtCore.QCoreApplication.translate
 
-        # Checks to see if there is already a database with the VicRoads data
-        if check_data_exists():
-            self.status_label.setText(_translate("main_window",
-                                                 "<html><head/><body><p><span style=\" color:#00FF00;\">Yes</span></p>"
-                                                 "</body></html>"))
-            self.load_push_button.setEnabled(False)
-            self.scats_number_combo_box.addItem("All")
-            self.junction_combo_box.addItem("All")
-            self.scats_number_combo_box.setEnabled(True)
-            self.train_push_button.setEnabled(True)
-        else:
-            self.train_push_button.setEnabled(False)
-            self.scats_number_combo_box.setEnabled(False)
-            self.scats_number_combo_box.addItem("None")
-            self.junction_combo_box.addItem("None")
-
-        self.junction_combo_box.setEnabled(False)
-
-        self.scats_number_combo_box.currentIndexChanged.connect(self.scats_number_changed)
-
-        models = ['LSTM', 'GRU', 'SAEs']
+        models = ["LSTM", "GRU", "SAEs", "FEEDFWD", "DEEPFEEDFWD"]
         for model in models:
             self.model_combo_box.addItem(model)
 
-        with ScatsDB() as s:
-            scats_numbers = s.get_all_scats_numbers()
+        scats_numbers = SCATS_DATA.get_all_scats_numbers()
 
-            for scats in scats_numbers:
-                self.scats_number_combo_box.addItem(str(scats))
+        self.scats_number_combo_box.addItem("All")
+        self.junction_combo_box.addItem("All")
+        for scats in scats_numbers:
+            self.scats_number_combo_box.addItem(str(scats))
+            self.scats_info[str(scats)] = SCATS_DATA.get_scats_approaches(scats)
 
-                locations = []
-                for junction in s.get_scats_approaches(scats):
-                    location_name = s.get_location_name(scats, junction)
-                    locations.append(location_name)
+            i = 0
+            for location in self.scats_info[str(scats)]:
+                self.scats_info[str(scats)][i] = SCATS_DATA.get_location_name(scats, location)
+                i += 1
 
-                self.scats_info[str(scats)] = locations
 
-        # Adds functionality to the buttons
-        self.load_push_button.clicked.connect(self.load)
-        self.train_push_button.clicked.connect(self.thread.start)
+        self.junction_combo_box.setEnabled(False)
+
+        # Adds functionality to the controls
+        self.train_push_button.clicked.connect(self.train_process)
+        self.scats_number_combo_box.currentIndexChanged.connect(self.scats_number_changed)
 
 
 if __name__ == "__main__":
