@@ -159,11 +159,11 @@ def main(argv):
         help="The approach to the site.")
     parser.add_argument(
         "--model",
-        default="saes",
+        default="feedfwd",
         help="Model to train.")
     args = parser.parse_args()
 
-    train_with_args(args.scats, args.junction, args.model)
+    train_with_args(int(args.scats), int(args.junction), args.model)
 
 
 if __name__ == '__main__':
