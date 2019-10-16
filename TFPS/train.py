@@ -159,7 +159,7 @@ def main(argv):
         help="The approach to the site.")
     parser.add_argument(
         "--model",
-        default="feedfwd",
+        default="gru",
         help="Model to train.")
     args = parser.parse_args()
 
