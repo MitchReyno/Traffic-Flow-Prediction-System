@@ -55,12 +55,63 @@ def eva_regress(y_true, y_pred):
     mae = metrics.mean_absolute_error(y_true, y_pred)
     mse = metrics.mean_squared_error(y_true, y_pred)
     r2 = metrics.r2_score(y_true, y_pred)
+
+    mtx = {
+        "mape": mape,
+        "evs": vs,
+        "mae": mae,
+        "mse": mse,
+        "rmse": math.sqrt(mse),
+        "r2": r2
+    }
+
     print('explained_variance_score:%f' % vs)
     print('mape:%f%%' % mape)
     print('mae:%f' % mae)
     print('mse:%f' % mse)
     print('rmse:%f' % math.sqrt(mse))
     print('r2:%f' % r2)
+
+    return mtx
+
+
+def plot_error(mtx):
+    """ Plot error metrics for each model
+
+        Parameters:
+            mtx (array):
+        """
+
+    labels = ["MAPE", "EVS", "MAE", "MSE", "RMSE", "R2"]
+    model_names = ['LSTM', 'GRU', 'SAEs', 'FF', 'DFF']
+    positions = [0, 1, 2, 3, 4]
+
+    mape, evs, mae, mse, rmse, r2 = [], [], [], [], [], []
+
+    for i in mtx:                   # Get a list of error for each metric (per model)
+        mape.append(i["mape"])
+        evs.append(i["evs"])
+        mae.append(i["mae"])
+        mse.append(i["mse"])
+        rmse.append(i["rmse"])
+        r2.append(i["r2"])
+
+    error_measurements = [mape, evs, mae, mse, rmse, r2]
+    
+    i = 0
+    plt.figure(figsize=(10, 10))
+    for em in error_measurements:
+        plt.subplot(3, 2, i + 1)
+        plt.bar(positions, em, width=.5)
+        plt.xticks(positions, model_names)
+        plt.title(labels[i])
+        if labels[i] == "EVS" or labels[i] == "R2":
+            plt.ylim(0.9, 1)
+        i += 1
+
+    plt.show()
+
+    return
 
 
 def plot_results(y_true, y_preds, names):
@@ -109,7 +160,7 @@ def main(argv):
 
     models = []
     untrained_models = []
-    model_names = ['LSTM', 'GRU', 'SAEs', 'FEEDFWD']
+    model_names = ['LSTM', 'GRU', 'SAEs', 'FEEDFWD', 'DEEPFEEDFWD']
 
     """ Getting the trained models is split into two parts 
         because of some issues when removing items from a list that is being iterated over """
@@ -131,6 +182,7 @@ def main(argv):
     y_test = scaler.inverse_transform(y_test.reshape(-1, 1)).reshape(1, -1)[0]
 
     y_preds = []
+    mtx = []
     for name, model in zip(model_names, models):
         if name == 'SAEs':
             x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1]))
@@ -142,10 +194,14 @@ def main(argv):
         predicted = scaler.inverse_transform(predicted.reshape(-1, 1)).reshape(1, -1)[0]
         y_preds.append(predicted[:96])
         print(name)
-        eva_regress(y_test, predicted)
+        mtx.append(eva_regress(y_test, predicted))
 
     plot_results(y_test[:96], y_preds, model_names)
-
+    plot_error(mtx)
+    mae = "mae"
+    print(f"\nMTX: {mtx}")
+    print(f"\n{mtx[0][mae]}")
+    print(f"\n{mtx[0].keys()}")
 
 if __name__ == '__main__':
     main(sys.argv)

@@ -1,6 +1,42 @@
 from keras.layers import Dense, Dropout, Activation
 from keras.layers.recurrent import LSTM, GRU
 from keras.models import Sequential
+import keras
+
+
+def get_feed_fwd(units):
+    """ Build Shallow Feed Forward model
+
+    Parameters:
+        units (list<int>): number of input, output and hidden units
+
+    Returns:
+        model: Model, nn model
+    """
+    model = Sequential([
+        keras.layers.Flatten(input_shape=(units[0], 1)),
+        keras.layers.Dense(units[1], activation='sigmoid'),
+        keras.layers.Dense(units[2], activation='sigmoid')
+    ])
+    return model
+
+
+def get_deep_feed_fwd(units):
+    """ Build Deep Feed Forward model
+
+    Parameters:
+        units (list<int>): number of input, output and hidden units
+
+    Returns:
+        model: Model, nn model
+    """
+    model = Sequential([
+        keras.layers.Flatten(input_shape=(units[0], 1)),
+        keras.layers.Dense(units[1], activation='sigmoid'),
+        keras.layers.Dense(units[2], activation='sigmoid'),
+        keras.layers.Dense(units[3], activation='sigmoid')
+    ])
+    return model
 
 
 def get_lstm(units):
