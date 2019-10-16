@@ -1,0 +1,19 @@
+Lat-Long true scale:
+Area Horizontal Distance = 9.637
+Area Vertical Distance = 7.949
+
+Get a normalized value (using x):
+9.637 * normal = 1
+normal = 1 / 9.637
+normal = 0.10377
+
+Apply the normalized value to the other axis (y) to get the scale (y:x):
+scale = 7.949 * normal
+scale = 7.949 * 0.10377
+scale = 0.82484
+
+y:x = 1:0.82484
+
+E.g.
+if the screen height is 790p:
+screen width = 790 * 0.82484 = 654.436 = 654p
