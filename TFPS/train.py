@@ -14,6 +14,8 @@ from data.scats import ScatsData
 from utility import get_setting
 from model import model
 
+from tensorflow.python.keras.models import load_model
+
 warnings.filterwarnings("ignore")
 SCATS_DATA = ScatsData()
 
@@ -30,13 +32,31 @@ def train_model(model, x_train, y_train, name, scats, junction, config):
         junction (int): the VicRoads internal number representing the location
         config (dict): parameter values for training
     """
-    model.compile(loss="mse", optimizer="rmsprop", metrics=['mape'])
+
+    model.compile(loss="mse", optimizer="RMSprop", metrics=['mse', 'mae'])
     # early = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='auto')
+
+    train_size = int(len(x_train) * .9)
+
+    x_test = x_train[0:][train_size:]
+    y_test = y_train[0:][train_size:]
+    x_train = x_train[0:][:train_size]
+    y_train = y_train[0:][:train_size]
+
     hist = model.fit(
         x_train, y_train,
         batch_size=config["batch"],
         epochs=config["epochs"],
         validation_split=0.05)
+    score = model.evaluate(
+        x_test,
+        y_test,
+        batch_size=config["batch"],
+        verbose=1)
+    prediction = model.predict(x_test)
+
+    print('Test score:', score[0])
+    print('Test accuracy:', score[1])
 
     folder = "model/{0}/{1}".format(name, scats)
     file = "{0}/{1}".format(folder, junction)
@@ -76,7 +96,7 @@ def train_seas(models, x_train, y_train, name, scats, junction, config):
             temp = hidden_layer_model.predict(temp)
 
         m = models[i]
-        m.compile(loss="mse", optimizer="rmsprop", metrics=['mape'])
+        m.compile(loss="mse", optimizer="rmsprop", metrics=['mse', 'mae'])
 
         m.fit(temp, y_train, batch_size=config["batch"],
               epochs=config["epochs"],
@@ -103,48 +123,90 @@ def train_with_args(scats, junction, model_to_train):
     scats_numbers = SCATS_DATA.get_all_scats_numbers()               # Get scats numbers in array, e,g: [970, 2000]
     print(f"(train.py) SCATS NUMBERS: {scats_numbers}")
 
-    if scats != "all":
+    if scats != "All":
         scats_numbers = [scats]
+        train_data = SCATS_DATA.get_training_data()
+        for scats_site in scats_numbers:
+            junctions = SCATS_DATA.get_scats_approaches(scats_site)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
+            print(f"(train.py) SCATS SITES: {junctions}")
 
-    for scats_site in scats_numbers:
-        junctions = SCATS_DATA.get_scats_approaches(scats_site)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
-        print(f"(train.py) SCATS SITES: {junctions}")
+            if junction != "All":                               # If the junction in args is not all...
+                junctions = [junction]
+                print(f"(train.py) SCATS SITES: {junctions}")   # ... set args to be the junctions e.g.: ['1']
+                                                                # TODO: Determine if strings are an issue here
+                for junction in junctions:
+                    print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
+                    x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
 
-        if junction != "all":                               # If the junction in args is not all...
-            junctions = [junction]
-            print(f"(train.py) SCATS SITES: {junctions}")   # ... set args to be the junctions e.g.: ['1']
-                                                            # TODO: Determine if strings are an issue here
+                    print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
+                    print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
+    else:
+        x_train, y_train = SCATS_DATA.get_training_data()
+        scats_site = "All"
+        junction = "All"
 
-        config = get_setting("train")  # Get the config, e.g: {'lag': 12, 'batch': 256, 'epochs': 600}
-        print(f"(train.py) CONFIG: {config}")
+    config = get_setting("train")  # Get the config, e.g: {'lag': 12, 'batch': 256, 'epochs': 600}
+    print(f"(train.py) CONFIG: {config}")
 
-        for junction in junctions:
-            print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
-            x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
+    filepath = 'model/' + model_to_train + "/" + scats_site + "/" + junction + '.h5'
+    if os.path.isfile(filepath):
+        m = load_model(filepath)
+    else:
+        m = -1
 
-            print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
-            print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
+    if model_to_train == 'lstm':
+        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+        if m == -1:
+            m = model.get_lstm([x_train.shape[1], 64, 64, 1])
+        train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    if model_to_train == 'gru':
+        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+        if m == -1:
+            m = model.get_gru([12, 64, 64, 1])
+        train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    if model_to_train == 'saes':
+        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
+        if m == -1:
+            m = model.get_saes([12, 400, 400, 400, 1])
+        train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    if model_to_train == "feedfwd":
+        # x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+        if m == -1:
+            m = model.get_feed_fwd(x_train.shape, [64, 1])
+        train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    if model_to_train == "deepfeedfwd":
+        # x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+        if m == -1:
+            m = model.get_deep_feed_fwd(x_train.shape, [128, 512, 64, 1])
+        train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
 
-            if model_to_train == 'lstm':
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_lstm([12, 64, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == 'gru':
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_gru([12, 64, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == 'saes':
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
-                m = model.get_saes([12, 400, 400, 400, 1])
-                train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == "feedfwd":
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_feed_fwd([12, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == "deepfeedfwd":
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_deep_feed_fwd([12, 64, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    # for junction in junctions:
+    #     print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
+    #     x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
+    #
+    #     print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
+    #     print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
+    #
+    #     if model_to_train == 'lstmOLD':
+    #         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+    #         m = model.get_lstm([12, 64, 64, 1])
+    #         train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    #     if model_to_train == 'gru':
+    #         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+    #         m = model.get_gru([12, 64, 64, 1])
+    #         train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    #     if model_to_train == 'saes':
+    #         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
+    #         m = model.get_saes([12, 400, 400, 400, 1])
+    #         train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    #     if model_to_train == "feedfwd":
+    #         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+    #         m = model.get_feed_fwd([12, 64, 1])
+    #         train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    #     if model_to_train == "deepfeedfwd":
+    #         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+    #         m = model.get_deep_feed_fwd([12, 64, 64, 1])
+    #         train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
 
 
 def main(argv):

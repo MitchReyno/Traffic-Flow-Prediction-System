@@ -15,6 +15,15 @@ def get_setting(key):
     """
     return settings[key]
 
+def is_int(val):
+    if type(val) == int:
+        return True
+    else:
+        if val.is_integer():
+            return True
+        else:
+            return False
+
 
 class ConsoleStream(QtCore.QObject):
     """ Handles the system-specific functions for stdout """

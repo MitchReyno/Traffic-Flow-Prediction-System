@@ -2,6 +2,8 @@ from datetime import datetime
 
 import os.path
 
+import utility
+
 import numpy as np
 import pandas as pd
 import overpass as op
@@ -53,6 +55,11 @@ class ScatsData(object):
     CONVENTIONS = {"RD": "Road",
                    "ST": "Street",
                    "HWY": "Highway"}
+    RELATIVE_LAT, RELATIVE_LONG = -37.9161, 144.9596
+    LATITUDE_OFFSET = -0.0015
+    LONGITUDE_OFFSET = -0.0013
+    SIN_TIMES = np.empty((96,))
+    COS_TIMES = np.empty((96,))
 
     def __init__(self):
         if not os.path.exists(self.CSV_FILE):
@@ -61,6 +68,10 @@ class ScatsData(object):
         dataset = pd.read_csv(self.CSV_FILE, encoding="latin-1", sep=",", header=None)
         self.data = pd.DataFrame(dataset)
         self.data[9] = format_date(self.data[9])
+        self.data[3], self.data[4] = self.correct_offset_coords(self.data[3], self.data[4])
+        for i in range(96):
+            self.SIN_TIMES[i] = np.sin(2 * np.pi * i / 96)
+            self.COS_TIMES[i] = np.cos(2 * np.pi * i / 96)
 
     def __enter__(self):
         return self
@@ -88,6 +99,12 @@ class ScatsData(object):
     def count(self):
         """ Counts the number of rows in the database """
         return len(self.data.index)
+
+    def correct_offset_coords(self, latitudes, longitudes):
+
+        lats = {lat: lat - self.LATITUDE_OFFSET for lat in latitudes}
+        longs = {long: long - self.LONGITUDE_OFFSET for long in longitudes}
+        return latitudes.map(lats), longitudes.map(longs)
 
     def get_location_name(self, scats_number, location):
         """ Gets the name of the location given it's VicRoads internal identifier
@@ -144,6 +161,12 @@ class ScatsData(object):
 
         return raw_data.iloc[0][3], raw_data.iloc[0][4]
 
+    def get_relational_positional_data(self, scats_number, location):
+
+        absolute_lat, absolute_long = self.get_positional_data(scats_number, location)
+
+        return absolute_lat-self.RELATIVE_LAT, absolute_long-self.RELATIVE_LONG
+
     def get_speed_limit(self, begin_scats_number, begin_location, end_scats_number, end_location):
         """ Gets the speed limit for a section of road from OpenStreetMaps
 
@@ -193,3 +216,31 @@ class ScatsData(object):
 
 
         return speed_limit
+
+    def get_training_data(self):
+        train_data = np.zeros((len(self.data)*96, 13))
+        count = 0
+        rows = self.data.to_numpy()
+        for i in range(len(rows)):
+            row = rows[i]
+            lat = row[3] - self.LATITUDE_OFFSET - self.RELATIVE_LAT
+            long = row[4] - self.LONGITUDE_OFFSET - self.RELATIVE_LONG
+            direction = int(row[7])
+            volume = row[10:106]
+            direction_index = 0
+            valid_junction = False
+            if 0 < direction < 9:
+                direction_index = direction + 1
+                valid_junction = True
+            for n in range(96):
+                train_data[count][0] = lat
+                train_data[count][1] = long
+                train_data[count][10] = self.SIN_TIMES[n]
+                train_data[count][11] = self.COS_TIMES[n]
+                train_data[count][12] = volume[n]
+                if valid_junction:
+                    train_data[count][direction_index] = 1
+                count += 1
+        np.random.shuffle(train_data)
+        return train_data[0:,0:12], train_data[0:,12:]
+

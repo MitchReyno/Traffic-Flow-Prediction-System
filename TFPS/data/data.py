@@ -115,7 +115,6 @@ def process_data(scats_number, junction, lags):
 
     return x_train, y_train, x_test, y_test, scaler
 
-
 def get_distance_between_points(o_scats, o_junction, d_scats, d_junction):
     """ Finds the great-circle distance between two points
 

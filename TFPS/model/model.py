@@ -4,7 +4,7 @@ from keras.models import Sequential
 import keras
 
 
-def get_feed_fwd(units):
+def get_feed_fwd(input_shape, units):
     """ Build Shallow Feed Forward model
 
     Parameters:
@@ -14,14 +14,14 @@ def get_feed_fwd(units):
         model: Model, nn model
     """
     model = Sequential([
-        keras.layers.Flatten(input_shape=(units[0], 1)),
-        keras.layers.Dense(units[1], activation='sigmoid'),
-        keras.layers.Dense(units[2], activation='sigmoid')
+        keras.layers.Dense(input_shape=input_shape, activation='relu'),
+        keras.layers.Dense(units[0], activation='sigmoid'),
+        keras.layers.Dense(units[1], activation='sigmoid')
     ])
     return model
 
 
-def get_deep_feed_fwd(units):
+def get_deep_feed_fwd(input_shape, units):
     """ Build Deep Feed Forward model
 
     Parameters:
@@ -31,10 +31,11 @@ def get_deep_feed_fwd(units):
         model: Model, nn model
     """
     model = Sequential([
-        keras.layers.Flatten(input_shape=(units[0], 1)),
-        keras.layers.Dense(units[1], activation='sigmoid'),
-        keras.layers.Dense(units[2], activation='sigmoid'),
-        keras.layers.Dense(units[3], activation='sigmoid')
+        keras.layers.Dense(input_shape[1], input_shape=(input_shape[1],), activation='relu'),
+        keras.layers.Dense(units[0], activation='relu'),
+        keras.layers.Dense(units[1], activation='relu'),
+        keras.layers.Dense(units[2], activation='relu'),
+        keras.layers.Dense(units[3], activation='relu')
     ])
     return model
 
@@ -52,7 +53,7 @@ def get_lstm(units):
     model.add(LSTM(units[1], input_shape=(units[0], 1), return_sequences=True))
     model.add(LSTM(units[2]))
     model.add(Dropout(0.2))
-    model.add(Dense(units[3], activation='sigmoid'))
+    model.add(Dense(units[3], activation='relu'))
 
     return model
 
@@ -110,13 +111,13 @@ def get_saes(layers):
 
     saes = Sequential()
     saes.add(Dense(layers[1], input_dim=layers[0], name='hidden1'))
-    saes.add(Activation('sigmoid'))
+    saes.add(Activation('relu'))
     saes.add(Dense(layers[2], name='hidden2'))
-    saes.add(Activation('sigmoid'))
+    saes.add(Activation('relu'))
     saes.add(Dense(layers[3], name='hidden3'))
-    saes.add(Activation('sigmoid'))
+    saes.add(Activation('relu'))
     saes.add(Dropout(0.2))
-    saes.add(Dense(layers[4], activation='sigmoid'))
+    saes.add(Dense(layers[4], activation='relu'))
 
     models = [sae1, sae2, sae3, saes]
 

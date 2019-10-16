@@ -201,9 +201,12 @@ class UiTrain(object):
 
     def train(self):
         """ Passes the training parameters to the program """
-        scats_number = int(self.scats_number_combo_box.itemText(self.scats_number_combo_box.currentIndex()))
-        junction = int(SCATS_DATA.get_location_id(self.junction_combo_box.itemText(
-            self.junction_combo_box.currentIndex())))
+        scats_number = self.scats_number_combo_box.itemText(self.scats_number_combo_box.currentIndex())
+        if scats_number != "All":
+            scats_number = int(scats_number)
+        junction = self.junction_combo_box.itemText(self.junction_combo_box.currentIndex())
+        if junction != "All":
+            junction = int(SCATS_DATA.get_location_id(junction))
         model = self.model_combo_box.itemText(self.model_combo_box.currentIndex()).lower()
 
         train_with_args(scats_number, junction, model)
