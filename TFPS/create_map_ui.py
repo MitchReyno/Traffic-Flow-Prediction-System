@@ -116,17 +116,28 @@ NUM_OPTN = max(len(ADD_MODES), len(CONNECT_MODES), len(JOURNEY_MODES))
 
 class SelectionInfo:
     def __init__(self):
+        # Universal
         self.has_selection = False
         self.type = "None"
         self.section = "Connect"
         self.mode = "Select"
         self.hover_mode = "none"
+
+        # Connecting
         self.node = None
         self.direction = None
         self.connector_node = None
         self.connection = None
-        self.largest_node_index = -1
         self.largest_connection_index = -1
+
+        # Adding
+        self.largest_node_index = -1
+
+        # Journey
+        self.start_node = None
+        self.target_node = None
+        self.path = []
+
 
 
 SELECTION = SelectionInfo()
@@ -645,6 +656,128 @@ def draw_in_target_mode(screen, data_nodes, mouse_pos, hover_text=True):
     pygame.display.flip()
 
 
+# Journey mode functions:
+
+def choose_point_click(screen, data_nodes, mouse_pos):
+    closest = 1000
+    chosen_scat = data_nodes[0]
+    for node in data_nodes:
+        screen_pos = CardinalDir.pos_to_screen(node.avg_pos)
+        dist = math.sqrt(math.pow(abs(mouse_pos[0] - screen_pos[0]), 2) +
+                         math.pow(abs(mouse_pos[1] - screen_pos[1]), 2))
+        if dist < 1:
+            chosen_scat = node
+            break
+        elif dist < closest:
+            chosen_scat = node
+            closest = dist
+    closest = 1000
+    chosen_node = chosen_scat.directions[0]
+    for scat in chosen_scat.directions:
+        screen_pos = CardinalDir.pos_to_screen(scat.pos)
+        dist = math.sqrt(math.pow(abs(mouse_pos[0] - screen_pos[0]), 2) +
+                         math.pow(abs(mouse_pos[1] - screen_pos[1]), 2))
+        if dist < closest:
+            chosen_node = scat
+            closest = dist
+
+    if SELECTION.mode == "Start Point":
+        SELECTION.has_selection = True
+        SELECTION.start_node = chosen_node
+        SELECTION.mode = "Direction"
+    elif SELECTION.mode == "Direction":
+        SELECTION.has_selection = True
+        SELECTION.target_node = chosen_node
+        SELECTION.mode = "Start Time"
+
+
+def draw_in_choose_point_mode(screen, data_nodes, mouse_pos, hover_text=True):
+    closest = 1000
+    chosen_scat = data_nodes[0]
+    col = RED
+    if SELECTION.mode == "Destination" and SELECTION.start_node is not None:
+        screen_pos = CardinalDir.pos_to_screen(SELECTION.start_node.pos)
+        pygame.draw.circle(screen, col, screen_pos, 15, 1)
+        col = BLUE
+
+    for node in data_nodes:
+        screen_pos = CardinalDir.pos_to_screen(node.avg_pos)
+        dist = math.sqrt(math.pow(abs(mouse_pos[0] - screen_pos[0]), 2) +
+                         math.pow(abs(mouse_pos[1] - screen_pos[1]), 2))
+        if dist < 1:
+            chosen_scat = node
+            break
+        elif dist < closest:
+            chosen_scat = node
+            closest = dist
+    screen_pos = CardinalDir.pos_to_screen(chosen_scat.avg_pos)
+    pygame.draw.circle(screen, col, screen_pos, 15, 1)
+    closest = 1000
+    chosen_node = chosen_scat.directions[0]
+    for scat in chosen_scat.directions:
+        screen_pos = CardinalDir.pos_to_screen(scat.pos)
+        dist = math.sqrt(math.pow(abs(mouse_pos[0] - screen_pos[0]), 2) +
+                         math.pow(abs(mouse_pos[1] - screen_pos[1]), 2))
+        if dist < closest:
+            chosen_node = scat
+            closest = dist
+
+    if hover_text:
+        text_pos = CardinalDir.pos_to_screen(chosen_node.pos)
+        text_pos[1] -= 30
+        text_pos = CardinalDir.apply_margins(text_pos, [20, 50])
+        font = pygame.font.Font('freesansbold.ttf', 12)
+        text = font.render(chosen_node.name, True, BLACK, YELLOW)
+        text_rect = text.get_rect()
+        text_rect.center = text_pos
+        screen.blit(text, text_rect)
+        text = font.render("Lat: {0}, Long: {1}".format(chosen_node.pos[0], chosen_node.pos[1]), True, BLACK, ORANGE)
+        text_rect = text.get_rect()
+        coords_pos = text_pos
+        coords_pos[1] += 12
+        text_rect.center = coords_pos
+        screen.blit(text, text_rect)
+
+    pygame.display.flip()
+
+
+def enter_start_time(screen, data_nodes, data_connections):
+    if MINIMIZE_FOR_CONSOLE_INPUT:
+        pygame.display.iconify()
+    else:
+        font = pygame.font.Font('freesansbold.ttf', 40)
+        text = font.render("ENTER DETAILS IN CONSOLE", True, BLACK, GREEN)
+        text_rect = text.get_rect()
+        text_rect.center = [int(SCRN_W / 2), int(SCRN_H / 2)]
+        screen.blit(text, text_rect)
+        pygame.display.flip()
+
+    print(">>Journey between '{0}' and '{1}'<<".format(SELECTION.start_node.name, SELECTION.target_node.name))
+    time = input("Enter the start time for the journey as 'H:M', or leave blank to cancel: ")
+    if time == "":
+        SELECTION.mode = "Destination"
+        return
+
+    get_path(data_nodes, data_connections)
+
+
+
+def get_path(data_nodes, data_connections):
+    # The selected start/end of the journey, as a reference to a node object (which is a single 'direction' of a SCAT).
+    start_node = SELECTION.start_node
+    target_node = SELECTION.target_node
+    time = SELECTION.time
+
+    SELECTION.path = "generate the path as a list of nodes"
+
+
+def draw_path(screen):
+    for node in SELECTION.path:
+        pos_a = CardinalDir.pos_to_screen(node.pos)
+        pos_b = CardinalDir.pos_to_screen(node.pos)
+        pygame.draw.line(screen, RED, pos_a, pos_b, 2)
+
+
 # Convert the excel cell data into nodes as objects.
 def format_nodes(data):
     node_list = []
@@ -875,6 +1008,8 @@ def start_input_loop():
                 direction_mode_click(mouse_pos)
             elif SELECTION.mode == "Target":
                 target_mode_click(screen, data_nodes, data_connections, mouse_pos)
+            elif SELECTION.mode == "Start Point":
+                choose_point_click(screen, data_connections, mouse_pos)
 
         if SELECTION.mode == "Select":
             draw_common(screen, data_nodes, data_connections)
@@ -885,6 +1020,12 @@ def start_input_loop():
         elif SELECTION.mode == "Target":
             draw_common(screen, data_nodes, data_connections, draw_connections=False)
             draw_in_target_mode(screen, data_nodes, mouse_pos)
+        elif SELECTION.mode == "Start Point" or SELECTION.mode == "Direction":
+            draw_common(screen, data_nodes, data_connections, draw_connections=False)
+            draw_in_choose_point_mode(screen, data_nodes, mouse_pos, (mouse_event == "over map"))
+        elif SELECTION.mode == "Results":
+            draw_common(screen, data_nodes, data_connections, draw_scats=False, draw_connections=False)
+            draw_path(screen)
         else:  # Draw in Info mode as default.
             draw_common(screen, data_nodes, data_connections)
             draw_in_info_mode(screen, data_nodes, mouse_pos, (mouse_event == "over map"))
