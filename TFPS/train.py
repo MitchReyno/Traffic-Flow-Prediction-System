@@ -30,7 +30,7 @@ def train_model(model, x_train, y_train, name, scats, junction, config):
         junction (int): the VicRoads internal number representing the location
         config (dict): parameter values for training
     """
-    model.compile(loss="mse", optimizer="rmsprop", metrics=['mape'])
+    model.compile(loss="mse", optimizer="adam", metrics=['mape', 'mae', 'mse'])
     # early = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='auto')
     hist = model.fit(
         x_train, y_train,
@@ -76,7 +76,7 @@ def train_seas(models, x_train, y_train, name, scats, junction, config):
             temp = hidden_layer_model.predict(temp)
 
         m = models[i]
-        m.compile(loss="mse", optimizer="rmsprop", metrics=['mape'])
+        m.compile(loss="mse", optimizer="adam", metrics=['mape', 'mae', 'mse'])
 
         m.fit(temp, y_train, batch_size=config["batch"],
               epochs=config["epochs"],
@@ -159,7 +159,7 @@ def main(argv):
         help="The approach to the site.")
     parser.add_argument(
         "--model",
-        default="gru",
+        default="saes",
         help="Model to train.")
     args = parser.parse_args()
 
