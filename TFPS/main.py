@@ -198,10 +198,6 @@ def main(argv):
 
     plot_results(y_test[:96], y_preds, model_names)
     plot_error(mtx)
-    mae = "mae"
-    print(f"\nMTX: {mtx}")
-    print(f"\n{mtx[0][mae]}")
-    print(f"\n{mtx[0].keys()}")
 
 if __name__ == '__main__':
     main(sys.argv)
