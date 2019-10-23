@@ -126,14 +126,3 @@ if __name__ == "__main__":
     plot_loss_per_epoch(loss, 'linear')
     plot_loss_per_epoch(loss, 'log')
 
-
-
-
-# total_loss, total_val_loss = 0, 0
-#                     for (vl, l) in zip(loss['loss'], loss['val_loss']):
-#                         total_loss += l
-#                         total_val_loss += vl
-#                     # Add average loss and val_loss to array
-#                     loss_for_model = [total_loss / len(loss.index), total_val_loss / len(loss.index)]
-#                     # Add the two values to a dict
-#                     loss_dict[f"{model}/{junction}/{direction}"] = loss_for_model
