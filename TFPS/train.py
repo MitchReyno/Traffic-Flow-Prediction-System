@@ -22,9 +22,9 @@ def train_model(model_to_use, x_train, y_train, save_location, filename, config)
     """ Train a single model
 
     Parameters:
-        model_to_use  (model): neural network model to train
-        x_train (array): input data for training
-        y_train (array): result data for training
+        model_to_use  (model.model): neural network model to train
+        x_train (array.py): input data for training
+        y_train (array.py): result data for training
         save_location (String): file directory to save model in
         filename (String): name of the file to save the model to
         config (dict): parameter values for training
@@ -135,12 +135,11 @@ def train_with_args(scats, junction, model_to_train):
     config = get_setting("train")  # Get the config, e.g: {'lag': 12, 'batch': 256, 'epochs': 600}
     print(f"(train.py) CONFIG: {config}")
     file_directory = 'model/' + model_to_train
-    filename = ".h5"
     if scats != "All":
         junctions = SCATS_DATA.get_scats_approaches(scats)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
         print(f"(train.py) SCATS SITES: {junctions}")
         file_directory = file_directory + "/" + scats
-        filename = junction + filename
+        filename = junction
         if junction != "All":                               # If the junction in args is not all...
             junctions = [junction]
             print(f"(train.py) SCATS SITES: {junctions}")   # ... set args to be the junctions e.g.: ['1']
@@ -150,7 +149,7 @@ def train_with_args(scats, junction, model_to_train):
             x_train, y_train, _, _, _ = process_data(scats, junction, config["lag"])
     else:
         file_directory = file_directory + "/" + "Generalised"
-        filename = "Model" + filename
+        filename = "Model"
         print("Training a generalised {0} model...".format(model_to_train))
         x_train, y_train = SCATS_DATA.get_training_data()
         scats_site = "All"

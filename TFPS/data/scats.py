@@ -8,6 +8,7 @@ import overpass as op
 import unicodecsv
 import xlrd
 
+from datetime import datetime, timedelta
 
 def check_data_exists():
     """ Returns True if the scats data csv file exists """
@@ -58,6 +59,15 @@ class ScatsData(object):
     DIRECTIONS_COSINE = np.empty((8,))
     SIN_TIMES = np.empty((96,))
     COS_TIMES = np.empty((96,))
+    for i in range(8):
+        DIRECTIONS_SINE[i] = 0.5 * np.sin(2 * np.pi * i / 8) + 0.5
+        DIRECTIONS_COSINE[i] = 0.5 * np.cos(2 * np.pi * i / 8) + 0.5
+    for i in range(96):
+        SIN_TIMES[i] = 0.5 * np.sin(2 * np.pi * i / 96) + 0.5
+        COS_TIMES[i] = 0.5 * np.cos(2 * np.pi * i / 96) + 0.5
+    TIME_INTERVALS = {}
+    for i in range(96):
+        TIME_INTERVALS[(datetime.today().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(minutes=15 * i)).strftime('%H:%M')] = i
     MAX_TRAFFIC = 1000
 
     def __init__(self):
@@ -67,12 +77,6 @@ class ScatsData(object):
         dataset = pd.read_csv(self.CSV_FILE, encoding="latin-1", sep=",", header=None)
         self.data = pd.DataFrame(dataset)
         self.data[9] = format_date(self.data[9])
-        for i in range(8):
-            self.DIRECTIONS_SINE[i] = 0.5 * np.sin(2 * np.pi * i / 8) + 0.5
-            self.DIRECTIONS_COSINE[i] = 0.5 * np.cos(2 * np.pi * i / 8) + 0.5
-        for i in range(96):
-            self.SIN_TIMES[i] = 0.5 * np.sin(2 * np.pi * i / 96) + 0.5
-            self.COS_TIMES[i] = 0.5 * np.cos(2 * np.pi * i / 96) + 0.5
 
     def __enter__(self):
         return self
@@ -161,6 +165,33 @@ class ScatsData(object):
         absolute_lat, absolute_long = self.get_positional_data(scats_number, location)
 
         return absolute_lat-self.RELATIVE_LAT, absolute_long-self.RELATIVE_LONG
+
+    def convert_absolute_coordinates_to_relative(self, latitude, longitude):
+        return latitude-self.RELATIVE_LAT, longitude-self.RELATIVE_LONG
+
+    def convert_direction_to_cyclic(self, direction):
+        if isinstance(direction, int):
+            direction = direction % 360
+            return 0.5 * np.sin(2 * np.pi * direction / 360) + 0.5, 0.5 * np.cos(2 * np.pi * direction / 360) + 0.5
+        elif direction == "N":
+            return self.SIN_TIMES[0], self.COS_TIMES[0]
+        elif direction == "NE":
+            return self.SIN_TIMES[1], self.COS_TIMES[1]
+        elif direction == "E":
+            return self.SIN_TIMES[2], self.COS_TIMES[2]
+        elif direction == "SE":
+            return self.SIN_TIMES[3], self.COS_TIMES[3]
+        elif direction == "S":
+            return self.SIN_TIMES[4], self.COS_TIMES[4]
+        elif direction == "SW":
+            return self.SIN_TIMES[5], self.COS_TIMES[5]
+        elif direction == "W":
+            return self.SIN_TIMES[6], self.COS_TIMES[6]
+        elif direction == "NW":
+            return self.SIN_TIMES[7], self.COS_TIMES[7]
+
+    def convert_time_to_cyclic(self, time):
+        return self.SIN_TIMES[self.TIME_INTERVALS[time]], self.COS_TIMES[self.TIME_INTERVALS[time]]
 
     def get_speed_limit(self, begin_scats_number, begin_location, end_scats_number, end_location):
         """ Gets the speed limit for a section of road from OpenStreetMaps
