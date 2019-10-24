@@ -92,7 +92,7 @@ def train_seas(models, x_train, y_train, name, scats, junction, config):
     train_model(saes, x_train, y_train, name, scats, junction, config)
 
 
-def train_with_args(scats, junction, model_to_train):
+def train_with_args(scats, junction, mdls):
     """ Start the training process with specific arguments
 
     Parameters:
@@ -100,51 +100,56 @@ def train_with_args(scats, junction, model_to_train):
         junction (int): the VicRoads internal id for the location
         model_to_train (String): the neural network model to train
     """
-    scats_numbers = SCATS_DATA.get_all_scats_numbers()               # Get scats numbers in array, e,g: [970, 2000]
-    print(f"(train.py) SCATS NUMBERS: {scats_numbers}")
+    models_to_train = mdls.split(',')
+    
+    for model_to_train in models_to_train:
+        print(f"Trainging model: {model_to_train}")
 
-    if scats != "all":
-        scats_numbers = [scats]
+        scats_numbers = SCATS_DATA.get_all_scats_numbers()               # Get scats numbers in array, e,g: [970, 2000]
+        print(f"(train.py) SCATS NUMBERS: {scats_numbers}")
 
-    for scats_site in scats_numbers:
-        junctions = SCATS_DATA.get_scats_approaches(scats_site)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
-        print(f"(train.py) SCATS SITES: {junctions}")
+        if scats != "all":
+            scats_numbers = [scats]
 
-        if junction != "all":                               # If the junction in args is not all...
-            junctions = [junction]
-            print(f"(train.py) SCATS SITES: {junctions}")   # ... set args to be the junctions e.g.: ['1']
-                                                            # TODO: Determine if strings are an issue here
+        for scats_site in scats_numbers:
+            junctions = SCATS_DATA.get_scats_approaches(scats_site)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
+            print(f"(train.py) SCATS SITES: {junctions}")
 
-        config = get_setting("train")  # Get the config, e.g: {'lag': 12, 'batch': 256, 'epochs': 600}
-        print(f"(train.py) CONFIG: {config}")
+            if junction != "all":                               # If the junction in args is not all...
+                junctions = [junction]
+                print(f"(train.py) SCATS SITES: {junctions}")   # ... set args to be the junctions e.g.: ['1']
+                                                                # TODO: Determine if strings are an issue here
 
-        for junction in junctions:
-            print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
-            x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
+            config = get_setting("train")  # Get the config, e.g: {'lag': 12, 'batch': 256, 'epochs': 600}
+            print(f"(train.py) CONFIG: {config}")
 
-            print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
-            print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
+            for junction in junctions:
+                print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
+                x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
 
-            if model_to_train == 'lstm':
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_lstm([12, 64, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == 'gru':
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_gru([12, 64, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == 'saes':
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
-                m = model.get_saes([12, 400, 400, 400, 1])
-                train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == "feedfwd":
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_feed_fwd([12, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == "deepfeedfwd":
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_deep_feed_fwd([12, 64, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+                print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
+                print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
+
+                if model_to_train == 'lstm':
+                    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+                    m = model.get_lstm([12, 64, 64, 1])
+                    train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+                if model_to_train == 'gru':
+                    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+                    m = model.get_gru([12, 64, 64, 1])
+                    train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+                if model_to_train == 'saes':
+                    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
+                    m = model.get_saes([12, 400, 400, 400, 1])
+                    train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
+                if model_to_train == "feedfwd":
+                    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+                    m = model.get_feed_fwd([12, 64, 1])
+                    train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+                if model_to_train == "deepfeedfwd":
+                    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+                    m = model.get_deep_feed_fwd([12, 64, 64, 1])
+                    train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
 
 
 def main(argv):
@@ -159,7 +164,7 @@ def main(argv):
         help="The approach to the site.")
     parser.add_argument(
         "--model",
-        default="saes",
+        default="lstm,gru,saes,feedfwd,deepfeedfwd",
         help="Model to train.")
     args = parser.parse_args()
 
