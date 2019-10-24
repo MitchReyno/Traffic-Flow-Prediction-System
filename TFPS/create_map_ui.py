@@ -120,7 +120,7 @@ MODE_INFO = {
 
 NUM_OPTN = max(len(ADD_MODES), len(CONNECT_MODES), len(JOURNEY_MODES))
 
-PREDICTOR = Predictor("model/deepfeedfwd/Generalised/Model.h5.h5")
+PREDICTOR = Predictor("model/deepfeedfwd/Generalised/Model.h5")
 
 
 class SelectionInfo:
@@ -131,7 +131,7 @@ class SelectionInfo:
         self.section = "Connect"
         self.mode = "Select"
         self.hover_mode = "none"
-        self.chosen_time = "08:30"
+        self.chosen_time = "18:00"
 
         # Connecting
         self.node = None
@@ -214,6 +214,8 @@ class CardinalDir:
     @staticmethod
     def opposite_int(dir_as_int):
         opposite = (dir_as_int + 4) % 8
+        if opposite == 0:
+            opposite = 8
         return opposite
 
     @staticmethod
@@ -369,7 +371,7 @@ def draw_connections(screen, data_connections, draw_traffic=False):
 
 def generate_weighted_connections(data_connections, split_lines=True):
     segments = []
-    max_traffic = 1
+    max_traffic = 0
     for conn in data_connections:
         # Use screen positions to calculate number of segments because coords are not normalised
         pos_a_screen = CardinalDir.pos_to_screen(conn.node_a.pos)
@@ -419,8 +421,8 @@ def generate_weighted_connections(data_connections, split_lines=True):
             direction = CardinalDir.opposite_int(direction)
             start_pos = pos_b
             for i in range(num_segments):
-                traffic = i  # TEST VALUE
-                #traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time)
+                #traffic = i  # TEST VALUE
+                traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time)
                 screen_start = CardinalDir.pos_to_screen(start_pos)
                 screen_start = [screen_start[0] + 2, screen_start[1] + 2]
                 start_pos = [start_pos[0] - d[0], start_pos[1] - d[1]]
@@ -430,6 +432,7 @@ def generate_weighted_connections(data_connections, split_lines=True):
                 segments.append(segment)
                 max_traffic = max(max_traffic, traffic)
 
+        max_traffic = 0.280
         for segment in segments:
             segment.create_colour_using_max_traffic(max_traffic)
         SELECTION.data_segments = segments

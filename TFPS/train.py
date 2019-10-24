@@ -59,8 +59,8 @@ def train_model(model_to_use, x_train, y_train, save_location, filename, config)
     if not os.path.exists(save_location):
         os.makedirs(save_location)
 
-    print("Saving {0}/{1}.h5".format(save_location, filename))
-    model_to_use.save("{0}/{1}.h5".format(save_location, filename))
+    print("Saving {0}/{1}".format(save_location, filename))
+    model_to_use.save("{0}/{1}".format(save_location, filename))
 
     df = pd.DataFrame.from_dict(hist.history)
     df.to_csv("{0}/{1}_loss.csv".format(save_location, filename), encoding='utf-8', index=False)
@@ -138,8 +138,8 @@ def train_with_args(scats, junction, model_to_train):
     if scats != "All":
         junctions = SCATS_DATA.get_scats_approaches(scats)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
         print(f"(train.py) SCATS SITES: {junctions}")
-        file_directory = file_directory + "/" + scats
-        filename = junction
+        file_directory = file_directory + "/" + scats + "/"
+        filename = junction + ".h5"
         if junction != "All":                               # If the junction in args is not all...
             junctions = [junction]
             print(f"(train.py) SCATS SITES: {junctions}")   # ... set args to be the junctions e.g.: ['1']
@@ -148,8 +148,8 @@ def train_with_args(scats, junction, model_to_train):
             print("Training {0}/{1} using a {2} model...".format(scats, junction, model_to_train))
             x_train, y_train, _, _, _ = process_data(scats, junction, config["lag"])
     else:
-        file_directory = file_directory + "/" + "Generalised"
-        filename = "Model"
+        file_directory = file_directory + "/" + "Generalised" + "/"
+        filename = "Model" + ".h5"
         print("Training a generalised {0} model...".format(model_to_train))
         x_train, y_train = SCATS_DATA.get_training_data()
         scats_site = "All"
