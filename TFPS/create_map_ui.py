@@ -2,6 +2,8 @@ import pygame
 import math
 import pandas as pd
 
+from predictor import Predictor
+
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (250, 250, 250)
@@ -118,6 +120,8 @@ MODE_INFO = {
 
 NUM_OPTN = max(len(ADD_MODES), len(CONNECT_MODES), len(JOURNEY_MODES))
 
+PREDICTOR = Predictor("model/deepfeedfwd/Generalised/Model.h5.h5")
+
 
 class SelectionInfo:
     def __init__(self):
@@ -127,7 +131,7 @@ class SelectionInfo:
         self.section = "Connect"
         self.mode = "Select"
         self.hover_mode = "none"
-        self.chosen_time = "12:00"
+        self.chosen_time = "08:30"
 
         # Connecting
         self.node = None
@@ -382,8 +386,8 @@ def generate_weighted_connections(data_connections, split_lines=True):
         d = [delta[0] / num_segments, delta[1] / num_segments]
         #print("Delta = ({0}, {1})".format(delta[0], delta[1]))
         if not split_lines:
-            traffic = 5  # TEST VALUE
-            # traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time)
+            #traffic = 5  # TEST VALUE
+            traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time)
             screen_start = CardinalDir.pos_to_screen(pos_a)
             screen_end = CardinalDir.pos_to_screen(pos_b)
             segment = Segment(screen_start, screen_end, traffic)
@@ -432,7 +436,16 @@ def generate_weighted_connections(data_connections, split_lines=True):
 
 
 def get_traffic(latitude, longitude, direction, time):
-    # Mitch CODE HERE!!!
+
+    inputs = [{
+        "latitude": latitude,
+        "longitude": longitude,
+        "direction": CardinalDir.int_to_short_str(direction),
+        "time": time
+    }]
+    prediction = PREDICTOR.make_prediction(inputs)
+    print(prediction[0])
+    return prediction[0]
     # Use this to give the code (generate_weighted_connections) a traffic prediction for the specified point.
     # Should return a number (int ok but float better).
     # The algorithm will automatically find the maximum and generate colours which represent the range.
