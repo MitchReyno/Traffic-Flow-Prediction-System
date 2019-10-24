@@ -33,7 +33,7 @@ def train_model(model, x_train, y_train, name, scats, junction, config):
         config (dict): parameter values for training
     """
 
-    model.compile(loss="mse", optimizer="RMSprop", metrics=['mse', 'mae'])
+    model.compile(loss="mse", optimizer="adam", metrics=['mse', 'mae'])
     # early = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='auto')
 
     train_size = int(len(x_train) * .9)
@@ -47,7 +47,8 @@ def train_model(model, x_train, y_train, name, scats, junction, config):
         x_train, y_train,
         batch_size=config["batch"],
         epochs=config["epochs"],
-        validation_split=0.05)
+        validation_split=0.1)
+    model.summary()
     score = model.evaluate(
         x_test,
         y_test,
@@ -177,7 +178,7 @@ def train_with_args(scats, junction, model_to_train):
     if model_to_train == "deepfeedfwd":
         # x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
         if m == -1:
-            m = model.get_deep_feed_fwd(x_train.shape, [128, 512, 64, 1])
+            m = model.get_deep_feed_fwd(x_train.shape, [64, 128, 64, 1])
         train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
 
     # for junction in junctions:

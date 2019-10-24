@@ -22,6 +22,7 @@ class UiTrain(object):
         self.output_text_edit = QtWidgets.QPlainTextEdit(self.main_widget)
         self.horizontal_line = QtWidgets.QFrame(self.main_widget)
         self.train_push_button = QtWidgets.QPushButton(self.main_widget)
+        self.continue_train_checkbox = QtWidgets.QCheckBox(self.main_widget)
         self.junction_combo_box = QtWidgets.QComboBox(self.main_widget)
         self.junction_label = QtWidgets.QLabel(self.main_widget)
         self.scats_number_combo_box = QtWidgets.QComboBox(self.main_widget)
@@ -78,7 +79,8 @@ class UiTrain(object):
         label_font.setWeight(75)
 
         self.main.setObjectName("main_window")
-        self.main.resize(600, 300)
+
+        self.main.resize(1200, 600)
         self.main_widget.setObjectName("main_widget")
         self.main.setWindowIcon(QtGui.QIcon('images/traffic_jam_64px.png'))
         self.vertical_layout.setObjectName("vertical_layout")
@@ -134,6 +136,7 @@ class UiTrain(object):
         self.vertical_layout.addLayout(self.training_settings_layout)
         self.train_push_button.setFont(default_font)
         self.train_push_button.setObjectName("train_push_button")
+        self.continue_train_checkbox.setObjectName("continue_train_checkbox")
         self.vertical_layout.addWidget(self.train_push_button)
         self.vertical_layout.addWidget(self.train_push_button)
         self.horizontal_line.setFrameShape(QtWidgets.QFrame.HLine)
