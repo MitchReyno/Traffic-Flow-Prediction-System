@@ -5,8 +5,6 @@ import warnings
 
 import numpy as np
 import pandas as pd
-import tensorflow as tf
-import keras
 from keras.models import Model
 
 from data.data import process_data
@@ -14,57 +12,79 @@ from data.scats import ScatsData
 from utility import get_setting
 from model import model
 
+from tensorflow.python.keras.models import load_model
+
 warnings.filterwarnings("ignore")
 SCATS_DATA = ScatsData()
 
 
-def train_model(model, x_train, y_train, name, scats, junction, config):
+def train_model(model_to_use, x_train, y_train, save_location, filename, config):
     """ Train a single model
 
     Parameters:
-        model  (model): neural network model to train
+        model_to_use  (model): neural network model to train
         x_train (array): input data for training
         y_train (array): result data for training
-        name (String): name of model
-        scats (int): the number of the SCATS site
-        junction (int): the VicRoads internal number representing the location
+        save_location (String): file directory to save model in
+        filename (String): name of the file to save the model to
         config (dict): parameter values for training
     """
-    model.compile(loss="mse", optimizer="rmsprop", metrics=['mape'])
+
+    metrics_to_use = ['mse', 'mae']
+    model_to_use.compile(loss=[metrics_to_use[0]], optimizer="adam", metrics=metrics_to_use)
     # early = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='auto')
-    hist = model.fit(
+
+    train_size = int(len(x_train) * .9)
+    x_test = x_train[0:][train_size:]
+    y_test = y_train[0:][train_size:]
+    x_train = x_train[0:][:train_size]
+    y_train = y_train[0:][:train_size]
+
+    hist = model_to_use.fit(
         x_train, y_train,
         batch_size=config["batch"],
         epochs=config["epochs"],
-        validation_split=0.05)
+        validation_split=0.1)
+    model_to_use.summary()
+    score = model_to_use.evaluate(
+        x_test,
+        y_test,
+        batch_size=config["batch"],
+        verbose=1)
 
-    folder = "model/{0}/{1}".format(name, scats)
-    file = "{0}/{1}".format(folder, junction)
+    print('Scores:')
+    for index, metric in enumerate(metrics_to_use):
+        print(metric, ': ', score[index])
 
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    if not os.path.exists(save_location):
+        os.makedirs(save_location)
 
-    print("Saving {0}.h5".format(file))
-    model.save("{0}.h5".format(file))
+    print("Saving {0}/{1}.h5".format(save_location, filename))
+    model_to_use.save("{0}/{1}.h5".format(save_location, filename))
 
     df = pd.DataFrame.from_dict(hist.history)
-    df.to_csv("{0} loss.csv".format(file), encoding='utf-8', index=False)
-    print("Saving {0} loss.csv".format(file))
+    df.to_csv("{0}/{1}_loss.csv".format(save_location, filename), encoding='utf-8', index=False)
+    print("Saving {0}/{1}_loss.csv".format(save_location, filename))
     print("Training complete")
 
 
-def train_seas(models, x_train, y_train, name, scats, junction, config):
+def train_seas(models, x_train, y_train, save_location, filename, config):
     """ Train the SAEs model
 
     Parameters:
-        model  (List<model>): list of sae models to train
+        models  (List<model>): list of sae models to train
         x_train (array): input data for training
         y_train (array): result data for training
-        name (String): name of model
-        scats (int): the number of the SCATS site
-        junction (int): the VicRoads internal number representing the location
+        save_location (String): file directory to save model in
+        filename (String): name of the file to save the model to
         config (dict): parameter values for training
     """
+
+    train_size = int(len(x_train) * .9)
+    x_test = x_train[0:][train_size:]
+    y_test = y_train[0:][train_size:]
+    x_train = x_train[0:][:train_size]
+    y_train = y_train[0:][:train_size]
     temp = x_train
     # early = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='auto')
 
@@ -76,11 +96,22 @@ def train_seas(models, x_train, y_train, name, scats, junction, config):
             temp = hidden_layer_model.predict(temp)
 
         m = models[i]
-        m.compile(loss="mse", optimizer="rmsprop", metrics=['mape'])
+        metrics_to_use = ['mse', 'mape']
+        m.compile(loss=metrics_to_use[0], optimizer="rmsprop", metrics=metrics_to_use)
 
         m.fit(temp, y_train, batch_size=config["batch"],
               epochs=config["epochs"],
               validation_split=0.05)
+        m.summary()
+        score = m.evaluate(
+            x_test,
+            y_test,
+            batch_size=config["batch"],
+            verbose=1)
+
+        print('Scores:')
+        for index, metric in enumerate(metrics_to_use):
+            print(metric, ': ', score[index])
 
         models[i] = m
 
@@ -89,7 +120,7 @@ def train_seas(models, x_train, y_train, name, scats, junction, config):
         weights = models[i].get_layer('hidden').get_weights()
         saes.get_layer('hidden%d' % (i + 1)).set_weights(weights)
 
-    train_model(saes, x_train, y_train, name, scats, junction, config)
+    train_model(saes, x_train, y_train, save_location, filename, config)
 
 
 def train_with_args(scats, junction, model_to_train):
@@ -100,51 +131,60 @@ def train_with_args(scats, junction, model_to_train):
         junction (int): the VicRoads internal id for the location
         model_to_train (String): the neural network model to train
     """
-    scats_numbers = SCATS_DATA.get_all_scats_numbers()               # Get scats numbers in array, e,g: [970, 2000]
-    print(f"(train.py) SCATS NUMBERS: {scats_numbers}")
 
-    if scats != "all":
-        scats_numbers = [scats]
-
-    for scats_site in scats_numbers:
-        junctions = SCATS_DATA.get_scats_approaches(scats_site)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
+    config = get_setting("train")  # Get the config, e.g: {'lag': 12, 'batch': 256, 'epochs': 600}
+    print(f"(train.py) CONFIG: {config}")
+    file_directory = 'model/' + model_to_train
+    filename = ".h5"
+    if scats != "All":
+        junctions = SCATS_DATA.get_scats_approaches(scats)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
         print(f"(train.py) SCATS SITES: {junctions}")
-
-        if junction != "all":                               # If the junction in args is not all...
+        file_directory = file_directory + "/" + scats
+        filename = junction + filename
+        if junction != "All":                               # If the junction in args is not all...
             junctions = [junction]
             print(f"(train.py) SCATS SITES: {junctions}")   # ... set args to be the junctions e.g.: ['1']
                                                             # TODO: Determine if strings are an issue here
-
-        config = get_setting("train")  # Get the config, e.g: {'lag': 12, 'batch': 256, 'epochs': 600}
-        print(f"(train.py) CONFIG: {config}")
-
         for junction in junctions:
-            print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
-            x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
+            print("Training {0}/{1} using a {2} model...".format(scats, junction, model_to_train))
+            x_train, y_train, _, _, _ = process_data(scats, junction, config["lag"])
+    else:
+        file_directory = file_directory + "/" + "Generalised"
+        filename = "Model" + filename
+        print("Training a generalised {0} model...".format(model_to_train))
+        x_train, y_train = SCATS_DATA.get_training_data()
+        scats_site = "All"
+        junction = "All"
 
-            print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
-            print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
+    print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
+    print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
 
-            if model_to_train == 'lstm':
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_lstm([12, 64, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == 'gru':
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_gru([12, 64, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == 'saes':
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
-                m = model.get_saes([12, 400, 400, 400, 1])
-                train_seas(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == "feedfwd":
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_feed_fwd([12, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
-            if model_to_train == "deepfeedfwd":
-                x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                m = model.get_deep_feed_fwd([12, 64, 64, 1])
-                train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
+    if os.path.isfile(file_directory+filename):
+        m = load_model(file_directory+filename)
+    else:
+        input_shape = (x_train.shape[1],)
+        m = generate_new_model(model_to_train, input_shape)
+
+    if model_to_train == 'seas':
+        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+        train_seas(m, x_train, y_train, file_directory, filename, config)
+    else:
+        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
+        train_model(m, x_train, y_train, file_directory, filename, config)
+
+
+def generate_new_model(model_to_train, input_shape):
+    if model_to_train == 'seas':
+        m = model.get_saes(input_shape, [400, 400, 400, 1])
+    elif model_to_train == 'lstm':
+        m = model.get_lstm(input_shape, [64, 64, 1])
+    if model_to_train == 'gru':
+        m = model.get_gru(input_shape, [64, 64, 1])
+    if model_to_train == "feedfwd":
+        m = model.get_feed_fwd(input_shape, [64, 1])
+    if model_to_train == "deepfeedfwd":
+        m = model.get_deep_feed_fwd(input_shape, [64, 128, 64, 1])
+    return m
 
 
 def main(argv):

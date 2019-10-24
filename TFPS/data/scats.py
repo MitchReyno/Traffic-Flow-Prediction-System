@@ -53,6 +53,12 @@ class ScatsData(object):
     CONVENTIONS = {"RD": "Road",
                    "ST": "Street",
                    "HWY": "Highway"}
+    RELATIVE_LAT, RELATIVE_LONG = -37.9161, 144.9596
+    DIRECTIONS_SINE = np.empty((8,))
+    DIRECTIONS_COSINE = np.empty((8,))
+    SIN_TIMES = np.empty((96,))
+    COS_TIMES = np.empty((96,))
+    MAX_TRAFFIC = 1000
 
     def __init__(self):
         if not os.path.exists(self.CSV_FILE):
@@ -61,6 +67,12 @@ class ScatsData(object):
         dataset = pd.read_csv(self.CSV_FILE, encoding="latin-1", sep=",", header=None)
         self.data = pd.DataFrame(dataset)
         self.data[9] = format_date(self.data[9])
+        for i in range(8):
+            self.DIRECTIONS_SINE[i] = 0.5 * np.sin(2 * np.pi * i / 8) + 0.5
+            self.DIRECTIONS_COSINE[i] = 0.5 * np.cos(2 * np.pi * i / 8) + 0.5
+        for i in range(96):
+            self.SIN_TIMES[i] = 0.5 * np.sin(2 * np.pi * i / 96) + 0.5
+            self.COS_TIMES[i] = 0.5 * np.cos(2 * np.pi * i / 96) + 0.5
 
     def __enter__(self):
         return self
@@ -144,6 +156,12 @@ class ScatsData(object):
 
         return raw_data.iloc[0][3], raw_data.iloc[0][4]
 
+    def get_relational_positional_data(self, scats_number, location):
+
+        absolute_lat, absolute_long = self.get_positional_data(scats_number, location)
+
+        return absolute_lat-self.RELATIVE_LAT, absolute_long-self.RELATIVE_LONG
+
     def get_speed_limit(self, begin_scats_number, begin_location, end_scats_number, end_location):
         """ Gets the speed limit for a section of road from OpenStreetMaps
 
@@ -193,3 +211,30 @@ class ScatsData(object):
 
 
         return speed_limit
+
+    def get_training_data(self):
+        train_data = np.zeros((len(self.data)*96, 7))
+        count = 0
+        rows = self.data.to_numpy()
+        for i in range(len(rows)):
+            row = rows[i]
+            lat = row[3] - self.RELATIVE_LAT
+            long = row[4] - self.RELATIVE_LONG
+            direction = int(row[7])
+            volume = row[10:106]
+            valid_junction = False
+            if 0 < direction < 9:
+                valid_junction = True
+            for n in range(96):
+                train_data[count][0] = lat
+                train_data[count][1] = long
+                if valid_junction:
+                    train_data[count][2] = self.DIRECTIONS_SINE[direction-1]
+                    train_data[count][3] = self.DIRECTIONS_COSINE[direction-1]
+                train_data[count][4] = self.SIN_TIMES[n]
+                train_data[count][5] = self.COS_TIMES[n]
+                train_data[count][6] = volume[n] / self.MAX_TRAFFIC
+                count += 1
+        np.random.shuffle(train_data)
+        return train_data[0:, 0:6], train_data[0:, 6:]
+

@@ -9,6 +9,20 @@ from utility import ConsoleStream, get_setting
 
 SCATS_DATA = ScatsData()
 
+DEFAULT_FONT = QtGui.QFont()
+DEFAULT_FONT.setFamily("Arial")
+DEFAULT_FONT.setPointSize(10)
+
+LABEL_FONT = QtGui.QFont()
+LABEL_FONT.setFamily("Arial")
+LABEL_FONT.setPointSize(10)
+LABEL_FONT.setBold(True)
+LABEL_FONT.setWeight(75)
+
+OUTPUT_FONT = QtGui.QFont()
+OUTPUT_FONT.setPointSize(8)
+OUTPUT_FONT.setFamily("Consolas")
+
 
 class UiTrain(object):
     """ The user interface for the training part of the program """
@@ -40,6 +54,32 @@ class UiTrain(object):
         self.lag_label = QtWidgets.QLabel(self.main_widget)
         self.lag_label_layout = QtWidgets.QVBoxLayout()
         self.training_settings_layout = QtWidgets.QHBoxLayout()
+        self.continue_train_checkbox = QtWidgets.QCheckBox(self.main_widget)
+
+        self.main.setObjectName("main_window")
+        self.main_widget.setObjectName("main_widget")
+        self.vertical_layout.setObjectName("vertical_layout")
+        self.settings_layout.setObjectName("settings_layout")
+        self.model_label.setObjectName("model_label")
+        self.model_combo_box.setObjectName("model_combo_box")
+        self.scats_number_label.setObjectName("scats_number_label")
+        self.scats_number_combo_box.setObjectName("scats_number_combo_box")
+        self.junction_label.setObjectName("junction_label")
+        self.junction_combo_box.setObjectName("junction_combo_box")
+        self.training_settings_layout.setObjectName("training_settings_layout")
+        self.lag_label_layout.setObjectName("lag_label_layout")
+        self.lag_label.setObjectName("lag_label")
+        self.lag_value_label.setObjectName("lag_value_label")
+        self.batch_label_layout.setObjectName("batch_label_layout")
+        self.batches_label.setObjectName("batches_label")
+        self.batches_value_label.setObjectName("batches_value_label")
+        self.epoch_label_layout.setObjectName("epoch_label_layout")
+        self.epochs_label.setObjectName("epochs_label")
+        self.epochs_value_label.setObjectName("epochs_value_label")
+        self.train_push_button.setObjectName("train_push_button")
+        self.continue_train_checkbox.setObjectName("continue_train_checkbox")
+        self.horizontal_line.setObjectName("horizontal_line")
+        self.output_text_edit.setObjectName("output_text_edit")
 
         # Makes the console output to the EditText control
         sys.stdout = ConsoleStream(text_output=self.display_output)
@@ -50,7 +90,6 @@ class UiTrain(object):
 
         for thread in self.threads:
             thread.join()
-
 
     def display_output(self, text):
         """ Adds text to the output control
@@ -64,97 +103,63 @@ class UiTrain(object):
         self.output_text_edit.setTextCursor(cursor)
         self.output_text_edit.ensureCursorVisible()
 
-
     def setup(self):
         """ Constructs the form, setting fonts, icons, layouts, etc... """
-        default_font = QtGui.QFont()
-        default_font.setFamily("Arial")
-        default_font.setPointSize(10)
-
-        label_font = QtGui.QFont()
-        label_font.setFamily("Arial")
-        label_font.setPointSize(10)
-        label_font.setBold(True)
-        label_font.setWeight(75)
-
-        self.main.setObjectName("main_window")
-        self.main.resize(600, 300)
-        self.main_widget.setObjectName("main_widget")
-        self.main.setWindowIcon(QtGui.QIcon('images/traffic_jam_64px.png'))
-        self.vertical_layout.setObjectName("vertical_layout")
-        self.settings_layout.setFormAlignment(QtCore.Qt.AlignCenter)
-        self.settings_layout.setObjectName("settings_layout")
-        self.model_label.setFont(default_font)
-        self.model_label.setObjectName("model_label")
-        self.settings_layout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.model_label)
-        self.model_combo_box.setFont(default_font)
-        self.model_combo_box.setObjectName("model_combo_box")
-        self.settings_layout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.model_combo_box)
-        self.scats_number_label.setFont(default_font)
-        self.scats_number_label.setObjectName("scats_number_label")
-        self.settings_layout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.scats_number_label)
-        self.scats_number_combo_box.setFont(default_font)
-        self.scats_number_combo_box.setObjectName("scats_number_combo_box")
-        self.settings_layout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.scats_number_combo_box)
-        self.junction_label.setFont(default_font)
-        self.junction_label.setObjectName("junction_label")
-        self.settings_layout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.junction_label)
-        self.junction_combo_box.setFont(default_font)
-        self.junction_combo_box.setObjectName("junction_combo_box")
-        self.settings_layout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.junction_combo_box)
-        self.vertical_layout.addLayout(self.settings_layout)
-        self.training_settings_layout.setObjectName("training_settings_layout")
-        self.lag_label_layout.setObjectName("lag_label_layout")
-        self.lag_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.lag_label.setObjectName("lag_label")
-        self.lag_label.setFont(label_font)
-        self.lag_label_layout.addWidget(self.lag_label)
-        self.lag_value_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.lag_value_label.setObjectName("lag_value_label")
-        self.lag_label_layout.addWidget(self.lag_value_label)
-        self.training_settings_layout.addLayout(self.lag_label_layout)
-        self.batch_label_layout.setObjectName("batch_label_layout")
-        self.batches_label.setFont(label_font)
-        self.batches_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.batches_label.setObjectName("batches_label")
-        self.batch_label_layout.addWidget(self.batches_label)
-        self.batches_value_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.batches_value_label.setObjectName("batches_value_label")
-        self.batch_label_layout.addWidget(self.batches_value_label)
-        self.training_settings_layout.addLayout(self.batch_label_layout)
-        self.epoch_label_layout.setObjectName("epoch_label_layout")
-        self.epochs_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.epochs_label.setObjectName("epochs_label")
-        self.epochs_label.setFont(label_font)
-        self.epoch_label_layout.addWidget(self.epochs_label)
-        self.epochs_value_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.epochs_value_label.setObjectName("epochs_value_label")
-        self.epoch_label_layout.addWidget(self.epochs_value_label)
-        self.training_settings_layout.addLayout(self.epoch_label_layout)
-        self.vertical_layout.addLayout(self.training_settings_layout)
-        self.train_push_button.setFont(default_font)
-        self.train_push_button.setObjectName("train_push_button")
-        self.vertical_layout.addWidget(self.train_push_button)
-        self.vertical_layout.addWidget(self.train_push_button)
-        self.horizontal_line.setFrameShape(QtWidgets.QFrame.HLine)
-        self.horizontal_line.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.horizontal_line.setObjectName("horizontal_line")
-        self.vertical_layout.addWidget(self.horizontal_line)
-        self.output_text_edit.setReadOnly(True)
-        self.output_text_edit.setObjectName("output_text_edit")
-
-        default_font.setPointSize(8)
-        default_font.setFamily("Consolas")
-
-        self.output_text_edit.setFont(default_font)
-        self.vertical_layout.addWidget(self.output_text_edit)
-        main_window.setCentralWidget(self.main_widget)
-
         self.set_text(main_window)
         QtCore.QMetaObject.connectSlotsByName(main_window)
-
+        self.init_layouts()
         self.init_widgets()
 
+    def init_layouts(self):
+        """ Creates all of the layout and widget nesting """
+
+        # Main window setup
+        main_window.setCentralWidget(self.main_widget)
+        self.main.resize(1200, 600)
+        self.main.setWindowIcon(QtGui.QIcon('images/traffic_jam_64px.png'))
+
+        # Vertical layout setup
+        self.vertical_layout.addLayout(self.settings_layout)
+        self.vertical_layout.addLayout(self.training_settings_layout)
+        self.vertical_layout.addWidget(self.train_push_button)
+        self.vertical_layout.addWidget(self.continue_train_checkbox)
+        self.vertical_layout.addWidget(self.horizontal_line)
+        self.vertical_layout.addWidget(self.output_text_edit)
+
+        # Settings layout setup
+        self.settings_layout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.model_label)
+        self.settings_layout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.model_combo_box)
+        self.settings_layout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.scats_number_label)
+        self.settings_layout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.scats_number_combo_box)
+        self.settings_layout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.junction_label)
+        self.settings_layout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.junction_combo_box)
+
+        # Training settings layout setup
+        self.training_settings_layout.addLayout(self.lag_label_layout)
+        self.lag_label_layout.addWidget(self.lag_label)
+        self.lag_label_layout.addWidget(self.lag_value_label)
+        self.training_settings_layout.addLayout(self.batch_label_layout)
+        self.batch_label_layout.addWidget(self.batches_label)
+        self.batch_label_layout.addWidget(self.batches_value_label)
+        self.training_settings_layout.addLayout(self.epoch_label_layout)
+        self.epoch_label_layout.addWidget(self.epochs_label)
+        self.epoch_label_layout.addWidget(self.epochs_value_label)
+
+        # Horizontal line setup
+        self.horizontal_line.setFrameShape(QtWidgets.QFrame.HLine)
+        self.horizontal_line.setFrameShadow(QtWidgets.QFrame.Sunken)
+
+        # Output text setup
+        self.output_text_edit.setReadOnly(True)
+
+        # Settings layout alignment
+        self.settings_layout.setFormAlignment(QtCore.Qt.AlignCenter)
+        self.lag_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.lag_value_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.batches_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.batches_value_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.epochs_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.epochs_value_label.setAlignment(QtCore.Qt.AlignCenter)
 
     def set_text(self, main):
         """ Sets the text for all the controls
@@ -162,6 +167,20 @@ class UiTrain(object):
         Parameters:
             main  (QMainWindow): the parent object for the interface
         """
+
+        self.model_label.setFont(DEFAULT_FONT)
+        self.model_combo_box.setFont(DEFAULT_FONT)
+        self.scats_number_label.setFont(DEFAULT_FONT)
+        self.scats_number_combo_box.setFont(DEFAULT_FONT)
+        self.junction_label.setFont(DEFAULT_FONT)
+        self.junction_combo_box.setFont(DEFAULT_FONT)
+        self.lag_label.setFont(LABEL_FONT)
+        self.batches_label.setFont(LABEL_FONT)
+        self.epochs_label.setFont(LABEL_FONT)
+        self.train_push_button.setFont(DEFAULT_FONT)
+        self.continue_train_checkbox.setFont(DEFAULT_FONT)
+        self.output_text_edit.setFont(OUTPUT_FONT)
+
         translate = QtCore.QCoreApplication.translate
         config = get_setting("train")
 
@@ -176,7 +195,33 @@ class UiTrain(object):
         self.epochs_label.setText(translate("mainWindow", "Epochs"))
         self.epochs_value_label.setText(translate("mainWindow", str(config["epochs"])))
         self.train_push_button.setText(translate("main_window", "Train"))
+        self.continue_train_checkbox.setText("Continue Training")
 
+    def init_widgets(self):
+        """ Sets up the widgets """
+
+        _translate = QtCore.QCoreApplication.translate
+
+        models = ["LSTM", "GRU", "SAEs", "FEEDFWD", "DEEPFEEDFWD"]
+        for model in models:
+            self.model_combo_box.addItem(model)
+
+        scats_numbers = SCATS_DATA.get_all_scats_numbers()
+
+        self.scats_number_combo_box.addItem("All")
+        self.junction_combo_box.addItem("All")
+        for scats in scats_numbers:
+            self.scats_number_combo_box.addItem(str(scats))
+            self.scats_info[str(scats)] = SCATS_DATA.get_scats_approaches(scats)
+            i = 0
+            for location in self.scats_info[str(scats)]:
+                self.scats_info[str(scats)][i] = SCATS_DATA.get_location_name(scats, location)
+                i += 1
+        self.junction_combo_box.setEnabled(False)
+
+        # Adds functionality to the controls
+        self.train_push_button.clicked.connect(self.train_process)
+        self.scats_number_combo_box.currentIndexChanged.connect(self.scats_number_changed)
 
     def scats_number_changed(self):
         """ Updates the junction combo box when the scats number is changed """
@@ -198,16 +243,20 @@ class UiTrain(object):
 
             self.junction_combo_box.setEnabled(True)
 
-
     def train(self):
         """ Passes the training parameters to the program """
-        scats_number = int(self.scats_number_combo_box.itemText(self.scats_number_combo_box.currentIndex()))
-        junction = int(SCATS_DATA.get_location_id(self.junction_combo_box.itemText(
-            self.junction_combo_box.currentIndex())))
+        scats_number = self.scats_number_combo_box.itemText(self.scats_number_combo_box.currentIndex())
+        if scats_number != "All":
+            scats_number = int(scats_number)
+        junction = self.junction_combo_box.itemText(self.junction_combo_box.currentIndex())
+        if junction != "All":
+            junction = int(SCATS_DATA.get_location_id(junction))
         model = self.model_combo_box.itemText(self.model_combo_box.currentIndex()).lower()
 
-        train_with_args(scats_number, junction, model)
-
+        while True:
+            train_with_args(scats_number, junction, model)
+            if not self.continue_train_checkbox.isChecked():
+                break;
 
     def train_process(self):
         """ Runs the training with threads """
@@ -218,35 +267,6 @@ class UiTrain(object):
 
         for thread in training_threads:
             thread.start()
-
-
-    def init_widgets(self):
-        """ Sets up the widgets """
-        _translate = QtCore.QCoreApplication.translate
-
-        models = ["LSTM", "GRU", "SAEs", "FEEDFWD", "DEEPFEEDFWD"]
-        for model in models:
-            self.model_combo_box.addItem(model)
-
-        scats_numbers = SCATS_DATA.get_all_scats_numbers()
-
-        self.scats_number_combo_box.addItem("All")
-        self.junction_combo_box.addItem("All")
-        for scats in scats_numbers:
-            self.scats_number_combo_box.addItem(str(scats))
-            self.scats_info[str(scats)] = SCATS_DATA.get_scats_approaches(scats)
-
-            i = 0
-            for location in self.scats_info[str(scats)]:
-                self.scats_info[str(scats)][i] = SCATS_DATA.get_location_name(scats, location)
-                i += 1
-
-
-        self.junction_combo_box.setEnabled(False)
-
-        # Adds functionality to the controls
-        self.train_push_button.clicked.connect(self.train_process)
-        self.scats_number_combo_box.currentIndexChanged.connect(self.scats_number_changed)
 
 
 if __name__ == "__main__":
