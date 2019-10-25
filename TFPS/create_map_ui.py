@@ -1,6 +1,7 @@
 import pygame
 import math
 import pandas as pd
+from routing import Location
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -32,6 +33,8 @@ MAP_OFFSET = [-154, 0]
 
 LARGEST_NODE_INDEX = -1
 LARGEST_CONNECTION_INDEX = -1
+
+LOCATIONS = Location()
 
 MENU = {
     0: "Add",
@@ -768,13 +771,52 @@ def get_path(data_nodes, data_connections):
     target_node = SELECTION.target_node
     time = SELECTION.time
 
-    SELECTION.path = "generate the path as a list of nodes"
+    start = start_node.SCAT.SCAT_number
+    start_intersection = start_node.dir
+
+    end = target_node.SCAT.SCAT_number
+    end_intersection = target_node.dir
+
+    path = LOCATIONS.route(start, start_intersection, end, end_intersection, time)
+
+    tuple_path = []
+    connection_a = None
+    have_first = False
+    for str_conn in path:
+        if have_first:
+            tuple_path.append([connection_a, str_conn])
+            have_first = False
+        else:
+            connection_a = str_conn
+            have_first = True
+
+    conn_path = []
+    for str_connect in tuple_path:
+        connection = Connection()
+        connection.id = -1
+        node_a_info = str_connect[0].split("-")
+        node_b_info = str_connect[1].split("-")
+        for node in data_nodes:
+            if node_a_info[0] == str(node.SCAT_number):
+                for direction in node.directions:
+                    if node_a_info[1] == str(direction.dir):
+                        connection.node_a = direction
+                        break
+
+        for node in data_nodes:
+            if node_b_info[0] == str(node.SCAT_number):
+                for direction in node.directions:
+                    if node_b_info[1] == str(direction.dir):
+                        connection.node_b = direction
+                        break
+
+        conn_path.append(connection)
 
 
 def draw_path(screen):
     for node in SELECTION.path:
-        pos_a = CardinalDir.pos_to_screen(node.pos)
-        pos_b = CardinalDir.pos_to_screen(node.pos)
+        pos_a = CardinalDir.pos_to_screen(node.node_a.pos)
+        pos_b = CardinalDir.pos_to_screen(node.node_b.pos)
         pygame.draw.line(screen, RED, pos_a, pos_b, 2)
 
 
@@ -1009,7 +1051,7 @@ def start_input_loop():
             elif SELECTION.mode == "Target":
                 target_mode_click(screen, data_nodes, data_connections, mouse_pos)
             elif SELECTION.mode == "Start Point":
-                choose_point_click(screen, data_connections, mouse_pos)
+                choose_point_click(screen, data_nodes, mouse_pos)
 
         if SELECTION.mode == "Select":
             draw_common(screen, data_nodes, data_connections)
