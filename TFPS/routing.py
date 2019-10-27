@@ -1,16 +1,18 @@
-import json
 import csv
 import os
 
 import pandas as pd
 
-from data.data import get_distance_between_points
+from data.data import get_time_between_points
 from data.scats import ScatsData
 
 SCATS_DATA = ScatsData()
 
-ROAD_CONNECTIONS_FILE = "data/roads.json"
+ROAD_CONNECTIONS_FILE = "data/MappingData.xls"
 DATA_FILE = "data/tfps.csv"
+
+BIDIRECTIONAL_CONNECTIONS = True
+ADD_ALL_DIRECTIONS = True
 
 
 def format_index_to_time(index):
@@ -29,31 +31,21 @@ def format_index_to_time(index):
 
 class Location(object):
     """ Contains the functionality for the routing capabilities """
-
     def __init__(self):
-        with open(ROAD_CONNECTIONS_FILE, "r") as f:
-            self.data = json.load(f)
-
         # The currently selected time of day
         self.time = None
-
         # Rows of data about the time taken to travel between 2 SCATS locations
         self.time_data = pd.DataFrame()
-
         # Basic road connections
         self.roads = {}
-
-        # Road connections with time information
+        # Road connections with time taken to travel between them
         self.roads_data = {}
 
-        self.create_map()
+        self.read_connections()
 
         if os.path.exists(DATA_FILE):
             dataset = pd.read_csv(DATA_FILE, encoding="latin-1", sep=",", header=None)
             self.time_data = pd.DataFrame(dataset)
-        else:
-            self.generate_all_data()
-
 
     def generate_all_data(self):
         """ Writes all the trained time data to a CSV file """
@@ -67,38 +59,73 @@ class Location(object):
                         destination = road.split("-")
 
                         time_of_day = format_index_to_time(i)
-                        estimated_time = get_distance_between_points(int(origin[0]), int(origin[1]),
-                                                                 int(destination[0]), int(destination[1]))
+                        estimated_time = get_time_between_points(int(origin[0]), int(origin[1]),
+                                                                 int(destination[0]), int(destination[1]), time_of_day)
 
                         writer.writerow([time_of_day, scats, road, str(estimated_time)])
                         writer.writerow([time_of_day, road, scats, str(estimated_time)])
 
 
-    def create_map(self):
-        """ Creates a mapping of connected SCATS locations """
-        scats_numbers = SCATS_DATA.get_all_scats_numbers()
+    def remove_connection(self, intersection1, intersection2):
+        """ Removes a road connection
 
-        for scats_number in scats_numbers:
-            intersections = SCATS_DATA.get_scats_approaches(scats_number)
+        Parameters:
+            intersection1 (String): the base intersection
+            intersection2 (String): the connected intersection to remove
+        """
+        try:
+            if intersection2 in self.roads[intersection1]:
+                self.roads[intersection1].remove(intersection2)
+        except KeyError:
+            pass
 
-            for intersection in intersections:
-                key = "{0}-{1}".format(scats_number, intersection)
 
-                if key not in self.roads.keys():
-                    self.roads[key] = []
+    def add_connection(self, intersection1, intersection2):
+        """ Adds a road connection
 
-                if key in self.data.keys():
-                    connected_road = self.data[key]
-                    self.roads[key].append(connected_road)
+        Parameters:
+            intersection1 (String): the base intersection
+            intersection2 (String): the connected intersection
+        """
+        try:
+            if (intersection2 not in self.roads[intersection1]) and (intersection2 != intersection1):
+                self.roads[intersection1].append(intersection2)
+        except KeyError:
+            self.roads[intersection1] = [intersection2]
 
-                    if connected_road not in self.roads.keys():
-                        self.roads[connected_road] = []
 
-                    if (connected_road in self.data.keys()) and (key not in self.roads[connected_road]):
-                        self.roads[connected_road].append(key)
+    def add_internal_connections(self, location):
+        """ Adds the direction connections to an intersection
 
-                for i in [i for i in intersections if i != intersection]:
-                    self.roads[key].append("{0}-{1}".format(scats_number, i))
+        Parameters:
+            location (String): the intersection
+        """
+        loc = location.split("-")
+        directions = SCATS_DATA.get_scats_approaches(int(loc[0]))
+
+        for direction in directions:
+            intersection = "{0}-{1}".format(loc[0], direction)
+            self.add_connection(location, intersection)
+
+
+    def read_connections(self):
+        """ Reads the road connections from the mapping file """
+        data = pd.read_excel(ROAD_CONNECTIONS_FILE, sheet_name='NodeConnections', skiprows=1)
+        connections = pd.DataFrame(data)
+
+        if not connections.empty:
+            for row in connections.itertuples():
+                intersection1 = row[2]
+                intersection2 = row[3]
+
+                self.add_connection(intersection1, intersection2)
+                if ADD_ALL_DIRECTIONS:
+                    self.add_internal_connections(intersection1)
+
+                if BIDIRECTIONAL_CONNECTIONS:
+                    self.add_connection(intersection2, intersection1)
+                    if ADD_ALL_DIRECTIONS:
+                        self.add_internal_connections(intersection2)
 
     def update_scats_time(self, time):
         """ Updates the weight (time) of each node for path finding
@@ -106,7 +133,7 @@ class Location(object):
         Parameters:
             time (String): the time of day ##:##
         """
-        raw_data = self.time_data.loc[(self.data[0] == time)]
+        raw_data = self.time_data.loc[(self.time_data[0] == time)]
 
         for row in raw_data:
             self.roads_data[(row[1], row[2])] = row[3]
@@ -163,10 +190,6 @@ class Location(object):
 
         return result
 
-    def debug_print(self, scats):
-        """ Prints the connected roads/intersection for a given SCATS location
-
-            Parameters:
-                scats (int): the scats location
-        """
-        print(self.roads[scats])
+    def debug_print(self):
+        """ Prints the connected roads list """
+        print(self.roads)
