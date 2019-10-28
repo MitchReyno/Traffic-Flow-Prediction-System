@@ -41,8 +41,12 @@ class Location(object):
         # Road connections with time taken to travel between them
         self.roads_data = {}
 
+        # Initialise the data
         self.read_connections()
+        self.load_travel_times()
 
+    def load_travel_times(self):
+        """ Loads the time to travel between SCATS locations """
         if os.path.exists(DATA_FILE):
             dataset = pd.read_csv(DATA_FILE, encoding="latin-1", sep=",", header=None)
             self.time_data = pd.DataFrame(dataset)
@@ -63,7 +67,7 @@ class Location(object):
                                                                  int(destination[0]), int(destination[1]), time_of_day)
 
                         writer.writerow([time_of_day, scats, road, str(estimated_time)])
-                        writer.writerow([time_of_day, road, scats, str(estimated_time)])
+                        print("Recorded time to travel between {0} and {1} at {2}".format(scats, road, time_of_day))
 
 
     def remove_connection(self, intersection1, intersection2):
@@ -107,6 +111,9 @@ class Location(object):
             intersection = "{0}-{1}".format(loc[0], direction)
             self.add_connection(location, intersection)
 
+            if BIDIRECTIONAL_CONNECTIONS:
+                self.add_connection(intersection, location)
+
 
     def read_connections(self):
         """ Reads the road connections from the mapping file """
@@ -135,8 +142,13 @@ class Location(object):
         """
         raw_data = self.time_data.loc[(self.time_data[0] == time)]
 
-        for row in raw_data:
-            self.roads_data[(row[1], row[2])] = row[3]
+        for i in raw_data.index:
+            origin = raw_data.iloc[i][1]
+            destination = raw_data.iloc[i][2]
+            time_taken = raw_data.iloc[i][3]
+
+            key = "{0}:{1}".format(origin, destination)
+            self.roads_data[key] = time_taken
 
         self.time = time
 
@@ -169,7 +181,9 @@ class Location(object):
             time_to_intersection = paths[current_intersection][1]
 
             for next_destination in destinations:
-                time_taken = self.roads_data[(current_intersection, next_destination)] + time_to_intersection
+                key = "{0}:{1}".format(current_intersection, next_destination)
+                time_taken = self.roads_data[key] + time_to_intersection
+
                 if next_destination not in paths:
                     paths[next_destination] = (current_intersection, time_taken)
                 else:
