@@ -138,7 +138,7 @@ def train_with_args(scats, junction, model_to_train):
     if scats != "All":
         junctions = SCATS_DATA.get_scats_approaches(scats)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
         print(f"(train.py) SCATS SITES: {junctions}")
-        file_directory = file_directory + "/" + scats + "/"
+        file_directory = f"{file_directory}/{scats}/"
         filename = junction
         if junction != "All":                               # If the junction in args is not all...
             junctions = [junction]
@@ -148,7 +148,7 @@ def train_with_args(scats, junction, model_to_train):
             print("Training {0}/{1} using a {2} model...".format(scats, junction, model_to_train))
             x_train, y_train, _, _, _ = process_data(scats, junction, config["lag"])
     else:
-        file_directory = file_directory + "/" + "Generalised" + "/"
+        file_directory = f"{file_directory}/Generalised/"
         filename = "Model"
         print("Training a generalised {0} model...".format(model_to_train))
         x_train, y_train = SCATS_DATA.get_training_data()
@@ -158,8 +158,8 @@ def train_with_args(scats, junction, model_to_train):
     print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
     print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
 
-    if os.path.isfile(file_directory+filename+".h5"):
-        m = load_model(file_directory+filename+".h5")
+    if os.path.isfile(f"{file_directory}{filename}.h5"):
+        m = load_model(f"{file_directory}{filename}.h5")
     else:
         input_shape = (x_train.shape[1],)
         m = generate_new_model(model_to_train, input_shape)
