@@ -3,7 +3,7 @@
   "train": {
     "lag": 12,
     "batch": 256,
-    "epochs": 600
+    "epochs": 2400
   },
   "model": "LSTM"
 }
