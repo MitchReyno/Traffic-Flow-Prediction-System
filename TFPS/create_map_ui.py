@@ -37,15 +37,17 @@ LARGEST_CONNECTION_INDEX = -1
 LOCATIONS = Location()
 
 MENU = {
-    0: "Add",
-    1: "Connect",
-    2: "Journey Planner"
+    0: "Journey Planner",
+    1: "Add",
+    2: "Connect",
+    3: "Data"
 }
 
 SECTION_COLS = {
     "Menu": DARK_GRAY,
     "Add": GREEN_GRAY,
-    "Connect": BLUE_GRAY,
+    "Connect": GREEN_GRAY,
+    "Data": BLUE_GRAY,
     "Journey Planner": RED_GRAY
 }
 
@@ -79,6 +81,17 @@ JOURNEY_MODES = {
     6: "ModeInfo"
 }
 
+DATA_MODES = {
+    0: "Menu",
+    1: "Accuracy Comparison",
+    2: "Road Traffic",
+    3: "Section Traffic",
+    4: "Projected Node Traffic",
+    5: "Actual Node Traffic",
+    6: "ModeInfo"
+}
+
+
 def get_options(section):
     if section == "Add":
         return ADD_MODES
@@ -86,6 +99,8 @@ def get_options(section):
         return CONNECT_MODES
     if section == "Journey Planner":
         return JOURNEY_MODES
+    if section == "Data":
+        return  DATA_MODES
     return MENU
 
 
@@ -109,6 +124,12 @@ MODE_INFO = {
     "Results": "The predicted best route should appear in RED on the map, and the next 4 best in BLUE.",
     "Colour Coded Results": "Showing the time cost (Red = High cost) of each road in the best route. INCOMPLETE",
 
+    "Accuracy Comparison": "Shows the differences between predicted and actual traffic.",
+    "Road Traffic": "Shows the predicted traffic for each road.",
+    "Section Traffic": "Shows the predicted traffic for small sections of the road.",
+    "Projected Node Traffic": "Hover over a node to see the predicted traffic for that road.",
+    "Actual Node Traffic": "Hover over a node to see the data received for that node.",
+
     "None": "Click on an option to start.",
 
     "ModeInfo": "THIS TEXT SHOULD NOT BE USED."
@@ -122,8 +143,8 @@ class SelectionInfo:
         # Universal
         self.has_selection = False
         self.type = "None"
-        self.section = "Connect"
-        self.mode = "Select"
+        self.section = "Journey Planner"
+        self.mode = "Start Point"
         self.hover_mode = "none"
 
         # Connecting
@@ -140,6 +161,8 @@ class SelectionInfo:
         self.start_node = None
         self.target_node = None
         self.path = []
+        self.time = "12:30"
+        self.day = 1
 
 
 
@@ -410,7 +433,7 @@ def draw_in_info_mode(screen, data_nodes, mouse_pos, hover_text=True):
         text_pos[1] -= 30
         text_pos = CardinalDir.apply_margins(text_pos, [20, 50])
         font = pygame.font.Font('freesansbold.ttf', 12)
-        text = font.render(chosen_node.name, True, BLACK, YELLOW)
+        text = font.render("{0}: {1}".format(chosen_scat.SCAT_number, chosen_node.name), True, BLACK, YELLOW)
         text_rect = text.get_rect()
         text_rect.center = text_pos
         screen.blit(text, text_rect)
@@ -661,7 +684,7 @@ def draw_in_target_mode(screen, data_nodes, mouse_pos, hover_text=True):
 
 # Journey mode functions:
 
-def choose_point_click(screen, data_nodes, mouse_pos):
+def choose_point_click(data_nodes, mouse_pos):
     closest = 1000
     chosen_scat = data_nodes[0]
     for node in data_nodes:
@@ -687,8 +710,8 @@ def choose_point_click(screen, data_nodes, mouse_pos):
     if SELECTION.mode == "Start Point":
         SELECTION.has_selection = True
         SELECTION.start_node = chosen_node
-        SELECTION.mode = "Direction"
-    elif SELECTION.mode == "Direction":
+        SELECTION.mode = "Destination"
+    elif SELECTION.mode == "Destination":
         SELECTION.has_selection = True
         SELECTION.target_node = chosen_node
         SELECTION.mode = "Start Time"
@@ -700,7 +723,7 @@ def draw_in_choose_point_mode(screen, data_nodes, mouse_pos, hover_text=True):
     col = RED
     if SELECTION.mode == "Destination" and SELECTION.start_node is not None:
         screen_pos = CardinalDir.pos_to_screen(SELECTION.start_node.pos)
-        pygame.draw.circle(screen, col, screen_pos, 15, 1)
+        pygame.draw.circle(screen, col, screen_pos, 15, 2)
         col = BLUE
 
     for node in data_nodes:
@@ -744,6 +767,95 @@ def draw_in_choose_point_mode(screen, data_nodes, mouse_pos, hover_text=True):
     pygame.display.flip()
 
 
+def time_change(up=True):
+    time = SELECTION.time.split(":")
+    hour = int(time[0])
+    mins = int(time[1])
+    if up:
+        if mins == 45:
+            mins = 0
+            hour += 1
+            if hour == 24:
+                hour = 0
+        else:
+            mins += 15
+    else:
+        if mins == 0:
+            mins = 45
+            hour -= 1
+            if hour == -1:
+                hour = 23
+        else:
+            mins -= 15
+    txt_mins = str(mins)
+    if mins == 0:
+        txt_mins = "00"
+    txt_hour = str(hour)
+    if hour < 10:
+        txt_hour = "0" + txt_hour
+    SELECTION.time = "{0}:{1}".format(txt_hour, txt_mins)
+
+
+def time_mode_click(data_nodes, data_connections, mouse_pos):
+    # If mouse is at the top of the screen increase time.
+    if mouse_pos[1] < SCRN_H / 3:
+        time_change(True)
+    # If mouse is in center of screen continue to drawing path.
+    elif mouse_pos[1] < (SCRN_H / 3) * 2:
+        get_path(data_nodes, data_connections)
+        SELECTION.mode = "Results"
+    # If mouse is at the bottom of the screen decrease time.
+    else:
+        time_change(False)
+
+
+def draw_in_time_mode(screen, mouse_pos):
+    col = GREEN
+
+    # If mouse is at the top of the screen highlight 'increase'.
+    if mouse_pos[1] < SCRN_H / 3:
+        col = BLUE
+    else:
+        col = GREEN
+    font = pygame.font.Font('freesansbold.ttf', 32)
+    text = font.render("^ +15 mins ^", True, col, DARK_GRAY)
+    text_rect = text.get_rect()
+    text_rect.center = [int(SCRN_W / 2) + OPTN_W, int(SCRN_H / 4)]
+    screen.blit(text, text_rect)
+
+    # Draw the current time
+    col = WHITE
+    font = pygame.font.Font('freesansbold.ttf', 32)
+    text = font.render("Time: {0}".format(SELECTION.time), True, col, DARK_GRAY)
+    text_rect = text.get_rect()
+    text_rect.center = [int(SCRN_W / 2) + OPTN_W, int(SCRN_H / 2) - 32]
+    screen.blit(text, text_rect)
+
+    # If mouse is in center of screen highlight 'continue'.
+    if SCRN_H / 3 < mouse_pos[1] < (SCRN_H / 3) * 2:
+        col = BLUE
+    else:
+        col = WHITE
+    font = pygame.font.Font('freesansbold.ttf', 32)
+    text = font.render("> Calculate best journey <", True, col, DARK_GRAY)
+    text_rect = text.get_rect()
+    text_rect.center = [int(SCRN_W / 2) + OPTN_W, int(SCRN_H / 2) + 32]
+    screen.blit(text, text_rect)
+
+    # If mouse is at the bottom of the screen highlight 'increase'.
+    if mouse_pos[1] > (SCRN_H / 3) * 2:
+        col = BLUE
+    else:
+        col = RED
+    font = pygame.font.Font('freesansbold.ttf', 32)
+    text = font.render("v -15 mins v", True, col, DARK_GRAY)
+    text_rect = text.get_rect()
+    text_rect.center = [int(SCRN_W / 2) + OPTN_W, int((SCRN_H / 4) * 3)]
+    screen.blit(text, text_rect)
+
+    pygame.display.flip()
+
+
 def enter_start_time(screen, data_nodes, data_connections):
     if MINIMIZE_FOR_CONSOLE_INPUT:
         pygame.display.iconify()
@@ -764,7 +876,6 @@ def enter_start_time(screen, data_nodes, data_connections):
     get_path(data_nodes, data_connections)
 
 
-
 def get_path(data_nodes, data_connections):
     # The selected start/end of the journey, as a reference to a node object (which is a single 'direction' of a SCAT).
     start_node = SELECTION.start_node
@@ -777,25 +888,26 @@ def get_path(data_nodes, data_connections):
     end = target_node.SCAT.SCAT_number
     end_intersection = target_node.dir
 
-    path = LOCATIONS.route(start, start_intersection, end, end_intersection, time)
+    #path = LOCATIONS.route(start, start_intersection, end, end_intersection, time)
+    # TEST PATH:
+    path = ["4043-1", "4040-3", "3804-1", "3122-5"]
 
     tuple_path = []
     connection_a = None
-    have_first = False
-    for str_conn in path:
-        if have_first:
-            tuple_path.append([connection_a, str_conn])
-            have_first = False
+    skip_first = True
+    for str_node in path:
+        tuple_node = str_node.split("-")
+        if not skip_first:
+            tuple_path.append([connection_a, tuple_node])
         else:
-            connection_a = str_conn
-            have_first = True
+            skip_first = False
+        connection_a = tuple_node
 
     conn_path = []
-    for str_connect in tuple_path:
+    for conn in tuple_path:
         connection = Connection()
         connection.id = -1
-        node_a_info = str_connect[0].split("-")
-        node_b_info = str_connect[1].split("-")
+        node_a_info = conn[0]
         for node in data_nodes:
             if node_a_info[0] == str(node.SCAT_number):
                 for direction in node.directions:
@@ -803,6 +915,7 @@ def get_path(data_nodes, data_connections):
                         connection.node_a = direction
                         break
 
+        node_b_info = conn[1]
         for node in data_nodes:
             if node_b_info[0] == str(node.SCAT_number):
                 for direction in node.directions:
@@ -811,13 +924,19 @@ def get_path(data_nodes, data_connections):
                         break
 
         conn_path.append(connection)
+    SELECTION.path = conn_path
 
 
 def draw_path(screen):
-    for node in SELECTION.path:
-        pos_a = CardinalDir.pos_to_screen(node.node_a.pos)
-        pos_b = CardinalDir.pos_to_screen(node.node_b.pos)
+    pos_b = [0, 0]
+    for conn in SELECTION.path:
+        pos_a = CardinalDir.pos_to_screen(conn.node_a.pos)
+        pos_b = CardinalDir.pos_to_screen(conn.node_b.pos)
         pygame.draw.line(screen, RED, pos_a, pos_b, 2)
+        pygame.draw.circle(screen, BLUE, pos_a, 3, 3)
+    pygame.draw.circle(screen, GREEN, pos_b, 3, 3)
+
+    pygame.display.flip()
 
 
 # Convert the excel cell data into nodes as objects.
@@ -1050,8 +1169,10 @@ def start_input_loop():
                 direction_mode_click(mouse_pos)
             elif SELECTION.mode == "Target":
                 target_mode_click(screen, data_nodes, data_connections, mouse_pos)
-            elif SELECTION.mode == "Start Point":
-                choose_point_click(screen, data_nodes, mouse_pos)
+            elif SELECTION.mode == "Start Point" or SELECTION.mode == "Destination":
+                choose_point_click(data_nodes, mouse_pos)
+            elif SELECTION.mode == "Start Time":
+                time_mode_click(data_nodes, data_connections, mouse_pos)
 
         if SELECTION.mode == "Select":
             draw_common(screen, data_nodes, data_connections)
@@ -1062,9 +1183,12 @@ def start_input_loop():
         elif SELECTION.mode == "Target":
             draw_common(screen, data_nodes, data_connections, draw_connections=False)
             draw_in_target_mode(screen, data_nodes, mouse_pos)
-        elif SELECTION.mode == "Start Point" or SELECTION.mode == "Direction":
+        elif SELECTION.mode == "Start Point" or SELECTION.mode == "Destination":
             draw_common(screen, data_nodes, data_connections, draw_connections=False)
             draw_in_choose_point_mode(screen, data_nodes, mouse_pos, (mouse_event == "over map"))
+        elif SELECTION.mode == "Start Time":
+            draw_common(screen, data_nodes, data_connections, draw_scats=False, draw_connections=False)
+            draw_in_time_mode(screen, mouse_pos)
         elif SELECTION.mode == "Results":
             draw_common(screen, data_nodes, data_connections, draw_scats=False, draw_connections=False)
             draw_path(screen)
