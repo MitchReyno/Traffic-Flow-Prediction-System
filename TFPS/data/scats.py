@@ -54,18 +54,44 @@ class ScatsData(object):
     """ Stores and retrieves the VicRoads data """
     DATA_SOURCE = "data/Scats Data October 2006.xls"
     CSV_FILE = "data/Scats Data.csv"
+    MAPPING_DATA = "data/MappingData.xls"
+
     CONVENTIONS = {"RD": "Road",
                    "ST": "Street",
-                   "HWY": "Highway"}
+                   "HWY": "Highway",
+                   "GV": "Grove",
+                   "EASTERN": "Eastern Freeway"}
+
+    RELATIVE_LAT, RELATIVE_LONG = -37.9161, 144.9596
+    DIRECTIONS_SINE = np.empty((8,))
+    DIRECTIONS_COSINE = np.empty((8,))
+    SIN_TIMES = np.empty((96,))
+    COS_TIMES = np.empty((96,))
+
     MAX_TRAFFIC = 1000
 
+    DEFAULT_SPEED_LIMIT = 60
+    USE_SPEED_LIMITS_FROM_OSM = False
+
     def __init__(self):
+        # Load all the SCATS data
         if not os.path.exists(self.CSV_FILE):
             convert_to_csv(self.DATA_SOURCE, self.CSV_FILE)
-
         dataset = pd.read_csv(self.CSV_FILE, encoding="latin-1", sep=",", header=None)
         self.data = pd.DataFrame(dataset)
         self.data[9] = format_date(self.data[9])
+
+        for i in range(8):
+            self.DIRECTIONS_SINE[i] = 0.5 * np.sin(2 * np.pi * i / 8) + 0.5
+            self.DIRECTIONS_COSINE[i] = 0.5 * np.cos(2 * np.pi * i / 8) + 0.5
+        for i in range(96):
+            self.SIN_TIMES[i] = 0.5 * np.sin(2 * np.pi * i / 96) + 0.5
+            self.COS_TIMES[i] = 0.5 * np.cos(2 * np.pi * i / 96) + 0.5
+
+        self.roads = pd.DataFrame(columns=["0", "1", "2", "3", "4"])
+        if not self.USE_SPEED_LIMITS_FROM_OSM and os.path.exists(self.MAPPING_DATA):
+            roads_data = pd.read_excel(self.MAPPING_DATA, sheet_name='NodeConnections', skiprows=1)
+            self.roads = pd.DataFrame(roads_data)
 
     def __enter__(self):
         return self
@@ -149,7 +175,59 @@ class ScatsData(object):
 
         return raw_data.iloc[0][3], raw_data.iloc[0][4]
 
+    def get_relational_positional_data(self, scats_number, location):
+
+        absolute_lat, absolute_long = self.get_positional_data(scats_number, location)
+
+        return absolute_lat - self.RELATIVE_LAT, absolute_long - self.RELATIVE_LONG
+
     def get_speed_limit(self, begin_scats_number, begin_location, end_scats_number, end_location):
+        """ Gets the speed limit for a section of road
+
+        Parameters:
+            begin_scats_number (int): the scats site identifier for the start of the road
+            begin_location (int): the VicRoads internal id/direction for the start of the road
+            end_scats_number (int): the scats site identifier for the end of the road
+            end_location (int): the VicRoads internal id/direction for the end of the road
+
+        Returns:
+            int: the speed limit of the road (in km/h)
+        """
+        if self.USE_SPEED_LIMITS_FROM_OSM:
+            speed_limit = self.get_speed_limit_from_osm(begin_scats_number, begin_location,
+                                                        end_scats_number, end_location)
+        else:
+            speed_limit = self.get_speed_limit_from_file(begin_scats_number, begin_location,
+                                                         end_scats_number, end_location)
+
+        return speed_limit
+
+    def get_speed_limit_from_file(self, begin_scats_number, begin_location, end_scats_number, end_location):
+        """ Gets the speed limit for a section of road from the Mapping Data file
+
+        Parameters:
+            begin_scats_number (int): the scats site identifier for the start of the road
+            begin_location (int): the VicRoads internal id/direction for the start of the road
+            end_scats_number (int): the scats site identifier for the end of the road
+            end_location (int): the VicRoads internal id/direction for the end of the road
+
+        Returns:
+            int: the speed limit of the road (in km/h)
+        """
+        speed_limit = self.DEFAULT_SPEED_LIMIT
+
+        start_road = "{0}-{1}".format(begin_scats_number, begin_location)
+        end_road = "{0}-{1}".format(end_scats_number, end_location)
+
+        try:
+            raw_data = self.roads.loc[(self.roads[1] == start_road) & (self.roads[2] == end_road)]
+            speed_limit = raw_data.iloc[0][3]
+        except KeyError:
+            pass
+
+        return speed_limit
+
+    def get_speed_limit_from_osm(self, begin_scats_number, begin_location, end_scats_number, end_location):
         """ Gets the speed limit for a section of road from OpenStreetMaps
 
         Parameters:
@@ -161,7 +239,8 @@ class ScatsData(object):
         Returns:
             int: the speed limit of the road (in km/h)
         """
-        speed_limit = 60
+        speed_limit = self.DEFAULT_SPEED_LIMIT
+
         api = op.API(endpoint="https://lz4.overpass-api.de/api/interpreter", timeout=60)
 
         s_latitude, s_longitude = self.get_positional_data(begin_scats_number, begin_location)
@@ -196,11 +275,10 @@ class ScatsData(object):
                         if "maxspeed" in properties.keys():
                             speed_limit = int(properties["maxspeed"])
 
-
         return speed_limit
 
     def get_training_data(self):
-        train_data = np.zeros((len(self.data)*96, 9))
+        train_data = np.zeros((len(self.data) * 96, 7))
         count = 0
         rows = self.data.to_numpy()
         for i in range(len(rows)):
@@ -215,11 +293,11 @@ class ScatsData(object):
                 train_data[count][0] = lat
                 train_data[count][1] = long
                 if valid_junction:
-                    train_data[count][2], train_data[count][3] = utility.convert_direction_to_cyclic(direction)
-                train_data[count][4], train_data[count][5] = utility.convert_time_interval_to_cyclic(n)
-                train_data[count][6], train_data[count][7] = utility.convert_date_to_cyclic_day(row[9])
-                train_data[count][8] = volume[n] / self.MAX_TRAFFIC
+                    train_data[count][2] = self.DIRECTIONS_SINE[direction - 1]
+                    train_data[count][3] = self.DIRECTIONS_COSINE[direction - 1]
+                train_data[count][4] = self.SIN_TIMES[n]
+                train_data[count][5] = self.COS_TIMES[n]
+                train_data[count][6] = volume[n] / self.MAX_TRAFFIC
                 count += 1
         np.random.shuffle(train_data)
-        return train_data[0:, 0:8], train_data[0:, 8:]
-
+        return train_data[0:, 0:6], train_data[0:, 6:]
