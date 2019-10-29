@@ -181,3 +181,23 @@ def get_volume(scats, junction, time):
     volume_data = predicted[:96]
 
     return volume_data[int(format_time_to_index(time))]
+
+
+def get_time_between_points(o_scats, o_junction, d_scats, d_junction, time):
+    """ Finds the time it would take to travel between two points
+
+    Parameters:
+        o_scats (int): the origin scats site
+        o_junction (int): the origin location
+        d_scats (int): the destination scats site
+        d_junction (int): the destination
+        time (String): the time of day ##:##
+
+    Returns:
+        float: the time in minutes to travel from one location to another
+    """
+    volume = get_volume(o_scats, o_junction, time)
+    distance = get_distance_between_points(o_scats, o_junction, d_scats, d_junction)
+    speed = SCATS_DATA.get_speed_limit(o_scats, o_junction, d_scats, d_junction)
+
+    return distance  / speed
