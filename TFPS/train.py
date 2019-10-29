@@ -165,10 +165,10 @@ def train_with_args(scats, junction, model_to_train):
         m = generate_new_model(model_to_train, input_shape)
 
     if model_to_train == 'seas':
-        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
         train_seas(m, x_train, y_train, file_directory, filename, config)
     else:
-        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1]))
+        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
         train_model(m, x_train, y_train, file_directory, filename, config)
 
 

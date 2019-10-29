@@ -50,10 +50,10 @@ def get_lstm(input_shape, units):
         model: Model, nn model
     """
     model = Sequential()
-    model.add(LSTM(input_shape[1], input_shape=input_shape, return_sequences=True))
-    model.add(LSTM(units[2]))
+    model.add(LSTM(units[0], input_shape=(input_shape[0], 1), return_sequences=True))
+    model.add(LSTM(units[1]))
     model.add(Dropout(0.2))
-    model.add(Dense(units[3], activation='relu'))
+    model.add(Dense(units[2], activation='relu'))
 
     return model
 
@@ -68,10 +68,10 @@ def get_gru(input_shape, units):
         model: Model, nn model
     """
     model = Sequential()
-    model.add(GRU(input_shape[0], input_shape=input_shape, return_sequences=True))
-    model.add(GRU(units[2]))
+    model.add(GRU(units[0], input_shape=input_shape, return_sequences=True))
+    model.add(GRU(units[1]))
     model.add(Dropout(0.2))
-    model.add(Dense(units[3], activation='sigmoid'))
+    model.add(Dense(units[2], activation='sigmoid'))
 
     return model
 
