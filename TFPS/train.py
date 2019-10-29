@@ -59,12 +59,12 @@ def train_model(model_to_use, x_train, y_train, save_location, filename, config)
     if not os.path.exists(save_location):
         os.makedirs(save_location)
 
-    print("Saving {0}/{1}.h5".format(save_location, filename))
-    model_to_use.save("{0}/{1}.h5".format(save_location, filename))
+    print("Saving {0}{1}.h5".format(save_location, filename))
+    model_to_use.save("{0}{1}.h5".format(save_location, filename))
 
     df = pd.DataFrame.from_dict(hist.history)
-    df.to_csv("{0}/{1}_loss.csv".format(save_location, filename), encoding='utf-8', index=False)
-    print("Saving {0}/{1}_loss.csv".format(save_location, filename))
+    df.to_csv("{0}{1}_loss.csv".format(save_location, filename), encoding='utf-8', index=False)
+    print("Saving {0}{1}_loss.csv".format(save_location, filename))
     print("Training complete")
 
 
