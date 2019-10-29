@@ -50,7 +50,7 @@ def get_lstm(input_shape, units):
         model: Model, nn model
     """
     model = Sequential()
-    model.add(LSTM(input_shape[0], input_shape=input_shape, return_sequences=True))
+    model.add(LSTM(input_shape[1], input_shape=input_shape, return_sequences=True))
     model.add(LSTM(units[2]))
     model.add(Dropout(0.2))
     model.add(Dense(units[3], activation='relu'))

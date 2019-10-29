@@ -131,7 +131,8 @@ class SelectionInfo:
         self.section = "Connect"
         self.mode = "Select"
         self.hover_mode = "none"
-        self.chosen_time = "18:00"
+        self.chosen_time = "08:00"
+        self.chosen_date = "23/10/2019"
 
         # Connecting
         self.node = None
@@ -389,7 +390,7 @@ def generate_weighted_connections(data_connections, split_lines=True):
         #print("Delta = ({0}, {1})".format(delta[0], delta[1]))
         if not split_lines:
             #traffic = 5  # TEST VALUE
-            traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time)
+            traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
             screen_start = CardinalDir.pos_to_screen(pos_a)
             screen_end = CardinalDir.pos_to_screen(pos_b)
             segment = Segment(screen_start, screen_end, traffic)
@@ -398,7 +399,7 @@ def generate_weighted_connections(data_connections, split_lines=True):
 
             # Reverse line with offset:
             # traffic = 5  # TEST VALUE
-            traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time)
+            traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
             screen_start = CardinalDir.pos_to_screen(pos_b)
             screen_start = [screen_start[0] + 1, screen_start[1] + 1]
             screen_end = CardinalDir.pos_to_screen(pos_a)
@@ -410,7 +411,7 @@ def generate_weighted_connections(data_connections, split_lines=True):
             start_pos = pos_a
             for i in range(num_segments):
                 # traffic = i  # TEST VALUE
-                traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time)
+                traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
                 screen_start = CardinalDir.pos_to_screen(start_pos)
                 start_pos = [start_pos[0] + d[0], start_pos[1] + d[1]]
                 screen_end = CardinalDir.pos_to_screen(start_pos)
@@ -422,7 +423,7 @@ def generate_weighted_connections(data_connections, split_lines=True):
             start_pos = pos_b
             for i in range(num_segments):
                 #traffic = i  # TEST VALUE
-                traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time)
+                traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
                 screen_start = CardinalDir.pos_to_screen(start_pos)
                 screen_start = [screen_start[0] + 2, screen_start[1] + 2]
                 start_pos = [start_pos[0] - d[0], start_pos[1] - d[1]]
@@ -438,13 +439,14 @@ def generate_weighted_connections(data_connections, split_lines=True):
         SELECTION.data_segments = segments
 
 
-def get_traffic(latitude, longitude, direction, time):
+def get_traffic(latitude, longitude, direction, time, date):
 
     inputs = [{
         "latitude": latitude,
         "longitude": longitude,
         "direction": CardinalDir.int_to_short_str(direction),
-        "time": time
+        "time": time,
+        "date": date
     }]
     prediction = PREDICTOR.make_prediction(inputs)
     print(prediction[0])
