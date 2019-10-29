@@ -1,15 +1,13 @@
-import os
 from math import asin
 from time import gmtime, strftime
 
 import numpy as np
 import pandas as pd
-from keras.engine.saving import load_model
 from sklearn.preprocessing import MinMaxScaler
 
 from data.scats import ScatsData
+from predictor import Predictor
 from utility import get_setting
-
 
 SCATS_DATA = ScatsData()
 
@@ -103,12 +101,12 @@ def process_data(scats_number, junction, lags):
     print(f"(data.py) TRAIN SHAPE: {train.shape}")
     print(f"(data.py) TEST SHAPE: {test.shape}")
 
-    np.random.shuffle(train)    # Shuffle training data
+    np.random.shuffle(train)  # Shuffle training data
 
-    x_train = train[:, :-1]     # Training data         Remove 1 as we're only interested in lags time steps
-    y_train = train[:, -1]      # Training labels       Drop right column so we're left with labels.
-    x_test = test[:, :-1]       # Testing data
-    y_test = test[:, -1]        # Testing labels
+    x_train = train[:, :-1]  # Training data         Remove 1 as we're only interested in lags time steps
+    y_train = train[:, -1]  # Training labels       Drop right column so we're left with labels.
+    x_test = test[:, :-1]  # Testing data
+    y_test = test[:, -1]  # Testing labels
 
     print(f"(data.py) XTRAIN SHAPE: {x_train.shape}")
     print(f"(data.py) YTRAIN SHAPE: {y_train.shape}")
@@ -160,27 +158,12 @@ def get_volume(scats, junction, time):
     Returns:
         int: the volume of traffic
     """
-    model = None
-
     model_name = get_setting("model").lower()
     file = "model/{0}/{1}/{2}.h5".format(model_name, scats, junction)
 
-    if os.path.exists(file):
-        model = load_model(file)
+    prediction = Predictor(file, model_name)
 
-    lag = get_setting("train")["lag"]
-    _, _, x_test, y_test, scaler = process_data(scats, junction, lag)
-
-    if model_name == 'SAEs':
-        x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1]))
-    else:
-        x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
-
-    predicted = model.predict(x_test)
-    predicted = scaler.inverse_transform(predicted.reshape(-1, 1)).reshape(1, -1)[0]
-    volume_data = predicted[:96]
-
-    return volume_data[int(format_time_to_index(time))]
+    return prediction.make_prediction_from_individual(scats, junction, time)
 
 
 def get_time_between_points(o_scats, o_junction, d_scats, d_junction, time):
@@ -196,8 +179,8 @@ def get_time_between_points(o_scats, o_junction, d_scats, d_junction, time):
     Returns:
         float: the time in minutes to travel from one location to another
     """
-    volume = get_volume(o_scats, o_junction, time)
+    # volume = get_volume(o_scats, o_junction, time)
     distance = get_distance_between_points(o_scats, o_junction, d_scats, d_junction)
     speed = SCATS_DATA.get_speed_limit(o_scats, o_junction, d_scats, d_junction)
 
-    return distance  / speed
+    return distance / speed

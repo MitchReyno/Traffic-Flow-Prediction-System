@@ -1,11 +1,9 @@
 import os
-import numpy as np
-import pandas as pd
 
+import numpy as np
 from tensorflow.python.keras.models import load_model
 
 import utility
-from data.scats import ScatsData
 
 
 class Predictor(object):
@@ -38,6 +36,6 @@ class Predictor(object):
 
     def make_prediction_from_individual(self, scats_number, junction, time):
 
-        individual_model = load_model("model/"+self.network_type+"/"+scats_number+"/"+junction+".h5")
+        individual_model = load_model("model/" + self.network_type + "/" + str(scats_number) + "/" + str(junction) + ".h5")
         inputs = np.array([time])
         return individual_model.predict(inputs)[0]
