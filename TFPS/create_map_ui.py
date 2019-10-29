@@ -142,7 +142,7 @@ MODE_INFO = {
 
 NUM_OPTN = max(len(ADD_MODES), len(CONNECT_MODES), len(JOURNEY_MODES))
 
-PREDICTOR = Predictor("model/deepfeedfwd/Generalised/Model.h5")
+PREDICTOR = Predictor("model/deepfeedfwd/Generalised/Model.h5", "deepfeedfwd")
 
 
 class SelectionInfo:
@@ -1020,9 +1020,7 @@ def get_path(data_nodes, data_connections):
     end = target_node.SCAT.SCAT_number
     end_intersection = target_node.dir
 
-    #path = LOCATIONS.route(start, start_intersection, end, end_intersection, time)
-    # TEST PATH:
-    path = ["4043-1", "4040-3", "3804-1", "3122-5"]
+    path = LOCATIONS.route(str(start), str(start_intersection), str(end), str(end_intersection), time)
 
     tuple_path = []
     connection_a = None

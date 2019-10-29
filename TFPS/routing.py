@@ -143,9 +143,9 @@ class Location(object):
         raw_data = self.time_data.loc[(self.time_data[0] == time)]
 
         for i in raw_data.index:
-            origin = raw_data.iloc[i][1]
-            destination = raw_data.iloc[i][2]
-            time_taken = raw_data.iloc[i][3]
+            origin = raw_data[1].loc[i]
+            destination = raw_data[2].loc[i]
+            time_taken = raw_data[3].loc[i]
 
             key = "{0}:{1}".format(origin, destination)
             self.roads_data[key] = time_taken
@@ -156,10 +156,10 @@ class Location(object):
         """ Returns an array of intersections from a given origin to destination
 
         Parameters:
-            o_scats (int): the origin scats site
-            o_junction (int): the origin location
-            d_scats (int): the destination scats site
-            d_junction (int): the destination
+            o_scats (String): the origin scats site
+            o_junction (String): the origin location
+            d_scats (String): the destination scats site
+            d_junction (String): the destination
             time (String): the time of day ##:##
 
         Returns:

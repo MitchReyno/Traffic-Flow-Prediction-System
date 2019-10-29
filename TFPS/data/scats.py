@@ -1,14 +1,11 @@
+import os.path
 from datetime import datetime
 
-import os.path
-
 import numpy as np
-import pandas as pd
 import overpass as op
+import pandas as pd
 import unicodecsv
 import xlrd
-
-from datetime import datetime, timedelta
 
 import utility
 
