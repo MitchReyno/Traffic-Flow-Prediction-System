@@ -46,6 +46,3 @@ venv.bak/
 # Generated Files
 TFPS/data/scats.db
 TFPS/data/Scats Data October 2006.xls
-TFPS/model/*
-!TFPS/model/model.py
-!TFPS/model/loss.py
