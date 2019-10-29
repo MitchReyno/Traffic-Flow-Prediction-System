@@ -3,6 +3,8 @@ import math
 import pandas as pd
 from routing import Location
 
+from predictor import Predictor
+
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (250, 250, 250)
@@ -24,7 +26,11 @@ OPTN_W = 200
 SCRN_H = 790
 SCRN_W = int((0.82484 * SCRN_H)) + OPTN_W
 
+# Translates to the 'fidelity' of the traffic info 50 is ~16 lines from top to bottom.
+MAX_LINE_SEGMENT_SIZE = 50
+
 ALLOW_MAP_ADJUSTMENT = False
+AUTOMATIC_ROAD_INFO = True
 MINIMIZE_FOR_CONSOLE_INPUT = False
 
 MAP_IMG = pygame.image.load("data/final_map.png")
@@ -91,7 +97,6 @@ DATA_MODES = {
     6: "ModeInfo"
 }
 
-
 def get_options(section):
     if section == "Add":
         return ADD_MODES
@@ -137,6 +142,8 @@ MODE_INFO = {
 
 NUM_OPTN = max(len(ADD_MODES), len(CONNECT_MODES), len(JOURNEY_MODES))
 
+PREDICTOR = Predictor("model/deepfeedfwd/Generalised/Model.h5")
+
 
 class SelectionInfo:
     def __init__(self):
@@ -146,6 +153,8 @@ class SelectionInfo:
         self.section = "Journey Planner"
         self.mode = "Start Point"
         self.hover_mode = "none"
+        self.chosen_time = "08:00"
+        self.chosen_date = "23/10/2019"
 
         # Connecting
         self.node = None
@@ -153,6 +162,7 @@ class SelectionInfo:
         self.connector_node = None
         self.connection = None
         self.largest_connection_index = -1
+        self.data_segments = None
 
         # Adding
         self.largest_node_index = -1
@@ -163,7 +173,6 @@ class SelectionInfo:
         self.path = []
         self.time = "12:30"
         self.day = 1
-
 
 
 SELECTION = SelectionInfo()
@@ -230,6 +239,8 @@ class CardinalDir:
     @staticmethod
     def opposite_int(dir_as_int):
         opposite = (dir_as_int + 4) % 8
+        if opposite == 0:
+            opposite = 8
         return opposite
 
     @staticmethod
@@ -328,8 +339,28 @@ class Connection:
         self.name = name
 
 
+class Segment:
+    def __init__(self, pos_a, pos_b, traffic=0, max_traffic=1):
+        self.pos_a = pos_a
+        self.pos_b = pos_b  # [pos_a[0] + delta[0], pos_a[1] + delta[1]]
+        self.traffic = traffic
+        self.colour = (0, 0, 255)
+        print("Created segment between ({0}, {1}) and ({2}, {3}) with traffic {4}".format(pos_a[0], pos_a[1], pos_b[0], pos_b[1], traffic))
+
+    @staticmethod
+    def generate_colour(traffic, max_traffic):
+        green = int(max(0.0, min(255.0, 512.0 - ((float(traffic) / float(max_traffic)) * 512.0))))
+        red = int(max(0.0, min(255.0, (float(traffic) / float(max_traffic)) * 512.0)))
+        colour = (red, green, 0)
+        print(colour)
+        return colour
+
+    def create_colour_using_max_traffic(self, max_traffic):
+        self.colour = self.generate_colour(self.traffic, max_traffic)
+
+
 # Draw the map, scats and nodes (scat directions), and connections.
-def draw_common(screen, nodes, data_connections, draw_scats=True, draw_directions=True, draw_connections=True):
+def draw_common(screen, nodes, data_connections, draw_scats=True, draw_directions=True, draw_conns=True):
     screen.fill(WHITE)
     screen.blit(MAP_IMG, (OPTN_W + MAP_OFFSET[0], MAP_OFFSET[1]))
     if draw_scats:
@@ -342,13 +373,111 @@ def draw_common(screen, nodes, data_connections, draw_scats=True, draw_direction
                     screen_pos = CardinalDir.pos_to_screen(scat.pos)
                     pygame.draw.circle(screen, BLUE, screen_pos, node_rep_size, 1)
 
-    if draw_connections:
+    if draw_conns:
+        draw_connections(screen, data_connections, True)
+
+    draw_buttons(screen)
+
+
+def draw_connections(screen, data_connections, draw_traffic=False):
+    if not draw_traffic:
         for conn in data_connections:
             pos_a = CardinalDir.pos_to_screen(conn.node_a.pos)
             pos_b = CardinalDir.pos_to_screen(conn.node_b.pos)
             pygame.draw.line(screen, RED, pos_a, pos_b, 2)
+    else:
+        if SELECTION.data_segments is not None:
+            for segment in SELECTION.data_segments:
+                pygame.draw.line(screen, segment.colour, segment.pos_a, segment.pos_b, 2)
+        else:
+            print("Segments don't exist, getting them.")
+            generate_weighted_connections(data_connections, True)
 
-    draw_buttons(screen)
+
+def generate_weighted_connections(data_connections, split_lines=True):
+    segments = []
+    max_traffic = 0
+    for conn in data_connections:
+        # Use screen positions to calculate number of segments because coords are not normalised
+        pos_a_screen = CardinalDir.pos_to_screen(conn.node_a.pos)
+        pos_b_screen = CardinalDir.pos_to_screen(conn.node_b.pos)
+        screen_delta = [pos_b_screen[0] - pos_a_screen[0], pos_b_screen[1] - pos_a_screen[1]]
+        dist = math.sqrt(math.pow(screen_delta[0], 2) + math.pow(screen_delta[1], 2))
+        num_segments = math.ceil(dist / MAX_LINE_SEGMENT_SIZE)
+        print("Got {0} from {1} and {2}".format(num_segments, dist, MAX_LINE_SEGMENT_SIZE))
+        direction = CardinalDir.delta_pos_to_int(screen_delta)
+
+        pos_a = conn.node_a.pos
+        pos_b = conn.node_b.pos
+        delta = [pos_b[0] - pos_a[0], pos_b[1] - pos_a[1]]
+        d = [delta[0] / num_segments, delta[1] / num_segments]
+        #print("Delta = ({0}, {1})".format(delta[0], delta[1]))
+        if not split_lines:
+            #traffic = 5  # TEST VALUE
+            traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
+            screen_start = CardinalDir.pos_to_screen(pos_a)
+            screen_end = CardinalDir.pos_to_screen(pos_b)
+            segment = Segment(screen_start, screen_end, traffic)
+            segments.append(segment)
+            max_traffic = max(max_traffic, traffic)
+
+            # Reverse line with offset:
+            # traffic = 5  # TEST VALUE
+            traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
+            screen_start = CardinalDir.pos_to_screen(pos_b)
+            screen_start = [screen_start[0] + 1, screen_start[1] + 1]
+            screen_end = CardinalDir.pos_to_screen(pos_a)
+            screen_end = [screen_end[0] + 1, screen_end[1] + 1]
+            segment = Segment(screen_start, screen_end, traffic)
+            segments.append(segment)
+            max_traffic = max(max_traffic, traffic)
+        else:
+            start_pos = pos_a
+            for i in range(num_segments):
+                # traffic = i  # TEST VALUE
+                traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
+                screen_start = CardinalDir.pos_to_screen(start_pos)
+                start_pos = [start_pos[0] + d[0], start_pos[1] + d[1]]
+                screen_end = CardinalDir.pos_to_screen(start_pos)
+                segment = Segment(screen_start, screen_end, float(traffic))
+                segments.append(segment)
+                max_traffic = max(max_traffic, traffic)
+
+            direction = CardinalDir.opposite_int(direction)
+            start_pos = pos_b
+            for i in range(num_segments):
+                #traffic = i  # TEST VALUE
+                traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
+                screen_start = CardinalDir.pos_to_screen(start_pos)
+                screen_start = [screen_start[0] + 2, screen_start[1] + 2]
+                start_pos = [start_pos[0] - d[0], start_pos[1] - d[1]]
+                screen_end = CardinalDir.pos_to_screen(start_pos)
+                screen_end = [screen_end[0] + 2, screen_end[1] + 2]
+                segment = Segment(screen_start, screen_end, float(traffic))
+                segments.append(segment)
+                max_traffic = max(max_traffic, traffic)
+
+        max_traffic = 0.280
+        for segment in segments:
+            segment.create_colour_using_max_traffic(max_traffic)
+        SELECTION.data_segments = segments
+
+
+def get_traffic(latitude, longitude, direction, time, date):
+
+    inputs = [{
+        "latitude": latitude,
+        "longitude": longitude,
+        "direction": CardinalDir.int_to_short_str(direction),
+        "time": time,
+        "date": date
+    }]
+    prediction = PREDICTOR.make_prediction(inputs)
+    print(prediction[0])
+    return prediction[0]
+    # Use this to give the code (generate_weighted_connections) a traffic prediction for the specified point.
+    # Should return a number (int ok but float better).
+    # The algorithm will automatically find the maximum and generate colours which represent the range.
 
 
 def render_text_multi_lines(screen, pos, string, max_length=20, text_size=12):
@@ -605,13 +734,16 @@ def target_mode_click(screen, data_nodes, data_connections, mouse_pos):
         screen.blit(text, text_rect)
         pygame.display.flip()
 
+    name = SELECTION.direction.name
+    speed = 60
     print(">>Creating connection between '{0}' and '{1}'<<".format(SELECTION.direction.name, target_node.name))
-    name = input("Type the name of this road, or leave blank to cancel:")
-    if name == "":
-        return
-    speed = int(input("Type the speed limit of this road in k/h, or '0' to cancel:"))
-    if speed == 0:
-        return
+    if not AUTOMATIC_ROAD_INFO:
+        name = input("Type the name of this road, or leave blank to cancel:")
+        if name == "":
+            return
+        speed = int(input("Type the speed limit of this road in k/h, or '0' to cancel:"))
+        if speed == 0:
+            return
     connection = Connection(SELECTION.largest_connection_index + 1, SELECTION.direction, target_node, speed, name)
     SELECTION.largest_connection_index += 1
     data_connections.append(connection)
@@ -1027,7 +1159,7 @@ def format_connections(connections, data_nodes):
 def get_connection_data(data_nodes, print_raw=False, print_formatted=False):
     # Get nodes from excel sheet
     data = "data/MappingData.xls"
-    panda_connections = pd.read_excel(data, sheet_name='NodeConnections', nrows=10)
+    panda_connections = pd.read_excel(data, sheet_name='NodeConnections')
     connections = pd.DataFrame(panda_connections)
 
     print("Connections:")
@@ -1178,19 +1310,19 @@ def start_input_loop():
             draw_common(screen, data_nodes, data_connections)
             draw_in_select_mode(screen, data_nodes, mouse_pos, False)
         elif SELECTION.mode == "Direction":
-            draw_common(screen, data_nodes, data_connections, draw_directions=False, draw_connections=False)
+            draw_common(screen, data_nodes, data_connections, draw_directions=False, draw_conns=False)
             draw_in_direction_mode(screen, data_nodes, mouse_pos)
         elif SELECTION.mode == "Target":
-            draw_common(screen, data_nodes, data_connections, draw_connections=False)
+            draw_common(screen, data_nodes, data_connections, draw_conns=False)
             draw_in_target_mode(screen, data_nodes, mouse_pos)
-        elif SELECTION.mode == "Start Point" or SELECTION.mode == "Destination":
-            draw_common(screen, data_nodes, data_connections, draw_connections=False)
+        elif SELECTION.mode == "Start Point" or SELECTION.mode == "Direction":
+            draw_common(screen, data_nodes, data_connections, draw_conns=False)
             draw_in_choose_point_mode(screen, data_nodes, mouse_pos, (mouse_event == "over map"))
         elif SELECTION.mode == "Start Time":
-            draw_common(screen, data_nodes, data_connections, draw_scats=False, draw_connections=False)
+            draw_common(screen, data_nodes, data_connections, draw_scats=False, draw_conns=False)
             draw_in_time_mode(screen, mouse_pos)
         elif SELECTION.mode == "Results":
-            draw_common(screen, data_nodes, data_connections, draw_scats=False, draw_connections=False)
+            draw_common(screen, data_nodes, data_connections, draw_scats=False, draw_conns=False)
             draw_path(screen)
         else:  # Draw in Info mode as default.
             draw_common(screen, data_nodes, data_connections)

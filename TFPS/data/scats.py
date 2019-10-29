@@ -8,6 +8,10 @@ import overpass as op
 import unicodecsv
 import xlrd
 
+from datetime import datetime, timedelta
+
+import utility
+
 
 def check_data_exists():
     """ Returns True if the scats data csv file exists """
@@ -63,6 +67,7 @@ class ScatsData(object):
     DIRECTIONS_COSINE = np.empty((8,))
     SIN_TIMES = np.empty((96,))
     COS_TIMES = np.empty((96,))
+
     MAX_TRAFFIC = 1000
 
     DEFAULT_SPEED_LIMIT = 60
@@ -278,8 +283,7 @@ class ScatsData(object):
         rows = self.data.to_numpy()
         for i in range(len(rows)):
             row = rows[i]
-            lat = row[3] - self.RELATIVE_LAT
-            long = row[4] - self.RELATIVE_LONG
+            lat, long = utility.convert_absolute_coordinates_to_relative(row[3], row[4])
             direction = int(row[7])
             volume = row[10:106]
             valid_junction = False
