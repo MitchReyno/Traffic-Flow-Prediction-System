@@ -11,9 +11,11 @@ from data.scats import ScatsData
 class Predictor(object):
 
     model = None
+    network_type = None
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, network_type):
         self.load_model(filepath)
+        self.network_type = network_type
 
     def load_model(self, filepath):
         if os.path.exists(filepath):
@@ -33,3 +35,9 @@ class Predictor(object):
 
         model_input = np.reshape(model_input, (model_input.shape[0], model_input.shape[1]))
         return self.model.predict(model_input)
+
+    def make_prediction_from_individual(self, scats_number, junction, time):
+
+        individual_model = load_model("model/"+self.network_type+"/"+scats_number+"/"+junction+".h5")
+        inputs = np.array([time])
+        return individual_model.predict(inputs)[0]
