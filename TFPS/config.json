@@ -1,8 +1,9 @@
 {
+  "database": "scats.db",
   "train": {
     "lag": 12,
-    "batch": 128,
-    "epochs": 4
+    "batch": 2048,
+    "epochs": 300
   },
-  "model": "DEEPFEEDFWD"
+  "model": "LSTM"
 }
