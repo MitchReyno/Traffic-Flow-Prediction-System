@@ -114,6 +114,7 @@ def train_with_args(scats, junction, mdls):
         for scats_site in scats_numbers:
             junctions = SCATS_DATA.get_scats_approaches(scats_site)      # Get array of scats approaches, e.g: [1, 3, 5, 7]
             print(f"(train.py) SCATS SITES: {junctions}")
+            print(f"(train.py) scats_site: {scats_site}")
 
             if junction != "all":                               # If the junction in args is not all...
                 junctions = [junction]
@@ -124,8 +125,14 @@ def train_with_args(scats, junction, mdls):
             print(f"(train.py) CONFIG: {config}")
 
             for junction in junctions:
+                print(f"(train.py) junction: {junction}")
                 print("Training {0}/{1} using a {2} model...".format(scats_site, junction, model_to_train))
                 x_train, y_train, _, _, _ = process_data(scats_site, junction, config["lag"])
+
+                if not len(x_train):
+                    continue
+                if not len(y_train):
+                    continue
 
                 print(f"(train.py) XTRAIN[0]: {x_train[0][:10]} \n XTRAIN[1]: {x_train[1][:10]} \n YTRAIN: {y_train[:10]}")
                 print(f"(traint.py) XTRAIN SHAPE: {x_train.shape} \n YTRAIN SHAPE: {y_train.shape}")
@@ -156,11 +163,11 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--scats",
-        default="970",
+        default="all",
         help="SCATS site number.")
     parser.add_argument(
         "--junction",
-        default="1",
+        default="all",
         help="The approach to the site.")
     parser.add_argument(
         "--model",
@@ -168,7 +175,7 @@ def main(argv):
         help="Model to train.")
     args = parser.parse_args()
 
-    train_with_args(int(args.scats), int(args.junction), args.model)
+    train_with_args(args.scats, args.junction, args.model)
 
 
 if __name__ == '__main__':

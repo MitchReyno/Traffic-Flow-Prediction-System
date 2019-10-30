@@ -71,6 +71,8 @@ def process_data(scats_number, junction, lags):
         StandardScaler: the scaler used to reshape the training data
     """
     volume_data = SCATS_DATA.get_scats_volume(scats_number, junction)
+    if not len(volume_data):
+        return [], [], [], [], []
     print(f"(data.py) VOLUME DATA: {volume_data[:10]}")
     print(f"(data.py) VOLUME DATA SHAPE: {volume_data.shape}")
     # Training using the first 3 weeks.
