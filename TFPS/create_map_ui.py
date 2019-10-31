@@ -1020,7 +1020,8 @@ def get_path(data_nodes, data_connections):
     end = target_node.SCAT.SCAT_number
     end_intersection = target_node.dir
 
-    path = LOCATIONS.route(str(start), str(start_intersection), str(end), str(end_intersection), time)
+    paths, path_costs = LOCATIONS.route(str(start), str(start_intersection), str(end), str(end_intersection), time, 5)
+    path = paths[0]
 
     tuple_path = []
     connection_a = None

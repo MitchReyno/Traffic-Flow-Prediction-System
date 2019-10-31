@@ -1,5 +1,6 @@
 import csv
 import os
+import queue
 
 import pandas as pd
 
@@ -31,6 +32,7 @@ def format_index_to_time(index):
 
 class Location(object):
     """ Contains the functionality for the routing capabilities """
+
     def __init__(self):
         # The currently selected time of day
         self.time = None
@@ -42,6 +44,9 @@ class Location(object):
         self.roads_data = {}
 
         # Initialise the data
+        road_data_file = pd.read_excel(ROAD_CONNECTIONS_FILE, sheet_name='NodeConnections', skiprows=1)
+        self.connections = pd.DataFrame(road_data_file)
+
         self.read_connections()
         self.load_travel_times()
 
@@ -69,7 +74,6 @@ class Location(object):
                         writer.writerow([time_of_day, scats, road, str(estimated_time)])
                         print("Recorded time to travel between {0} and {1} at {2}".format(scats, road, time_of_day))
 
-
     def remove_connection(self, intersection1, intersection2):
         """ Removes a road connection
 
@@ -83,7 +87,6 @@ class Location(object):
         except KeyError:
             pass
 
-
     def add_connection(self, intersection1, intersection2):
         """ Adds a road connection
 
@@ -96,7 +99,6 @@ class Location(object):
                 self.roads[intersection1].append(intersection2)
         except KeyError:
             self.roads[intersection1] = [intersection2]
-
 
     def add_internal_connections(self, location):
         """ Adds the direction connections to an intersection
@@ -114,14 +116,10 @@ class Location(object):
             if BIDIRECTIONAL_CONNECTIONS:
                 self.add_connection(intersection, location)
 
-
     def read_connections(self):
         """ Reads the road connections from the mapping file """
-        data = pd.read_excel(ROAD_CONNECTIONS_FILE, sheet_name='NodeConnections', skiprows=1)
-        connections = pd.DataFrame(data)
-
-        if not connections.empty:
-            for row in connections.itertuples():
+        if not self.connections.empty:
+            for row in self.connections.itertuples():
                 intersection1 = row[2]
                 intersection2 = row[3]
 
@@ -152,25 +150,16 @@ class Location(object):
 
         self.time = time
 
-    def route(self, o_scats, o_junction, d_scats, d_junction, time):
-        """ Returns an array of intersections from a given origin to destination
+    def shortest_path(self, origin, destination):
+        """ Returns the shortest path between intersections (using Dijkstra's algorithm)
 
         Parameters:
-            o_scats (String): the origin scats site
-            o_junction (String): the origin location
-            d_scats (String): the destination scats site
-            d_junction (String): the destination
-            time (String): the time of day ##:##
+            origin (String): the origin scats site
+            destination (String): the destination scats site
 
         Returns:
             array: the path to one intersection from another
         """
-        if self.time != time:
-            self.update_scats_time(time)
-
-        origin = "{0}-{1}".format(o_scats, o_junction)
-        destination = "{0}-{1}".format(d_scats, d_junction)
-
         paths = {origin: (None, 0)}
         current_intersection = origin
         visited = set()
@@ -192,6 +181,10 @@ class Location(object):
                         paths[next_destination] = (current_intersection, time_taken)
 
             next_destinations = {i: paths[i] for i in paths if i not in visited}
+
+            if not next_destinations:
+                return None
+
             current_intersection = min(next_destinations, key=lambda k: next_destinations[k][1])
 
         path = []
@@ -203,6 +196,98 @@ class Location(object):
         result = path[::-1]
 
         return result
+
+    def path_cost(self, path):
+        """ Calculates the total travel time given a path
+
+        Parameters:
+            path (array): the array of intersections
+
+        Returns:
+            int: the total cost / travel time
+        """
+        cost = 0
+        for i in range(1, len(path)):
+            start = path[i - 1]
+            end = path[i]
+
+            key = "{0}:{1}".format(start, end)
+            cost += self.roads_data[key]
+
+        return cost
+
+
+    def route(self, o_scats, o_junction, d_scats, d_junction, time, number_of_paths):
+        """ Finds a number of routes from the origin to the destination
+
+        Parameters:
+            o_scats (String): the origin scats site
+            o_junction (String): the origin location
+            d_scats (String): the destination scats site
+            d_junction (String): the destination
+            time (String): the time of day ##:##
+            number_of_paths (int): the maximum number of routes to generate
+        Returns:
+            array: the routes
+            array: the travel time for each route
+
+        """
+        if self.time != time:
+            self.update_scats_time(time)
+
+        origin = "{0}-{1}".format(o_scats, o_junction)
+        destination = "{0}-{1}".format(d_scats, d_junction)
+
+        a = [self.shortest_path(origin, destination)]
+        a_costs = [self.path_cost(a)]
+        b = queue.PriorityQueue()
+
+        for k in range(1, number_of_paths):
+            route_size = len(a[k - 1]) - 1
+
+            for i in range(route_size):
+                spur_node = a[k - 1][i]
+                root_path = a[k - 1][:i]
+
+                removed_roads = []
+
+                for path in a:
+                    if len(path) - 1 > i and root_path == path[:i]:
+                        key = "{0}:{1}".format(path[i], path[i + 1])
+                        travel_time = self.roads_data[key]
+
+                        removed_roads.append((path[i], path[i + 1], travel_time))
+                        self.remove_connection(path[i], path[i + 1])
+
+                spur_path = self.shortest_path(spur_node, destination)
+
+                if spur_path is not None:
+                    total_path = root_path + spur_path
+                    total_cost = self.path_cost(total_path)
+
+                    b.put((total_cost, total_path))
+
+                for removed_road in removed_roads:
+                    # Add the road connection back into the list
+                    start_intersection, end_intersection, time_taken = removed_road
+                    self.add_connection(start_intersection, end_intersection)
+
+                    # Add the time it takes to travel between the intersections
+                    key = "{0}:{1}".format(start_intersection, end_intersection)
+                    self.roads_data[key] = time_taken
+
+            while True:
+                new_route_cost, new_route = b.get()
+
+                # Add only unique paths
+                if new_route not in a:
+                    a.append(new_route)
+                    a_costs.append(new_route_cost)
+
+                    break
+
+        return a, a_costs
+
 
     def debug_print(self):
         """ Prints the connected roads list """
