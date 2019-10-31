@@ -107,6 +107,10 @@ def plot_error(mtx):
         plt.title(labels[i])
         if labels[i] == "EVS" or labels[i] == "R2":
             plt.ylim(0.9, 1)
+        if labels[i] == "MAE":
+            plt.ylim(0, 30)
+        if labels[i] == "MSE":
+            plt.ylim(0, 850)
         i += 1
 
     plt.show()
