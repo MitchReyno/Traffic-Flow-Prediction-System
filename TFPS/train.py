@@ -155,7 +155,17 @@ def train_with_args(scats, junction, mdls):
                     train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
                 if model_to_train == "deepfeedfwd":
                     x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-                    m = model.get_deep_feed_fwd([12, 64, 64, 1])
+                    m = keras.Sequential([
+                        keras.layers.Flatten(input_shape=(12, 1)),
+                        keras.layers.Dense(64, activation='sigmoid'),
+                        keras.layers.Dense(64, activation='sigmoid'),
+                        keras.layers.Dense(64, activation='sigmoid'),
+                        keras.layers.Dense(64, activation='sigmoid'),
+                        keras.layers.Dense(64, activation='sigmoid'),
+                        keras.layers.Dense(64, activation='sigmoid'),
+                        keras.layers.Dense(64, activation='sigmoid'),
+                        keras.layers.Dense(1, activation='sigmoid')
+                    ])
                     train_model(m, x_train, y_train, model_to_train, scats_site, junction, config)
 
 
@@ -163,15 +173,15 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--scats",
-        default="all",
+        default="970",
         help="SCATS site number.")
     parser.add_argument(
         "--junction",
-        default="all",
+        default="1",
         help="The approach to the site.")
     parser.add_argument(
         "--model",
-        default="lstm,gru,saes,feedfwd,deepfeedfwd",
+        default="deepfeedfwd",
         help="Model to train.")
     args = parser.parse_args()
 
