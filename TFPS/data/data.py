@@ -70,7 +70,7 @@ def process_data(scats_number, junction, lags):
         array: y_test
         StandardScaler: the scaler used to reshape the training data
     """
-    volume_data = SCATS_DATA.get_scats_volume(scats_number, junction)
+    volume_data = SCATS_DATA.get_scats_volume(int(scats_number), int(junction))
     if not len(volume_data):
         return [], [], [], [], []
     print(f"(data.py) VOLUME DATA: {volume_data[:10]}")

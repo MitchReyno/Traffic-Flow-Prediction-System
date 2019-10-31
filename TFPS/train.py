@@ -163,11 +163,11 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--scats",
-        default="all",
+        default="970",
         help="SCATS site number.")
     parser.add_argument(
         "--junction",
-        default="all",
+        default="1",
         help="The approach to the site.")
     parser.add_argument(
         "--model",
