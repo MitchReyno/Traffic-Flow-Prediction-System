@@ -31,11 +31,20 @@ class Predictor(object):
             model_input[index][4], model_input[index][5] = utility.convert_time_to_cyclic(input["time"])
             model_input[index][6], model_input[index][7] = utility.convert_date_to_cyclic_day(input["date"])
 
-        model_input = np.reshape(model_input, (model_input.shape[0], model_input.shape[1]))
+        model_input = self.reshape_data(model_input)
+
         return self.model.predict(model_input)
 
     def make_prediction_from_individual(self, scats_number, junction, time):
 
         individual_model = load_model("model/" + self.network_type + "/" + str(scats_number) + "/" + str(junction) + ".h5")
         inputs = np.array([time])
+        inputs = self.reshape_data(inputs)
         return individual_model.predict(inputs)[0]
+
+    def reshape_data(self, data):
+        if self.network_type == 'seas':
+            reshaped_data = np.reshape(data, (data.shape[0], data.shape[1]))
+        else:
+            reshaped_data = np.reshape(data, (data.shape[0], data.shape[1], 1))
+        return reshaped_data
