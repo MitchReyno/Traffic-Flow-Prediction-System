@@ -38,7 +38,8 @@ class Predictor(object):
     def make_prediction_from_individual(self, scats_number, junction, time):
 
         individual_model = load_model("model/" + self.network_type + "/" + str(scats_number) + "/" + str(junction) + ".h5")
-        inputs = np.array([time])
+        inputs = np.empty((1, 1))
+        inputs[0][0] = time
         inputs = self.reshape_data(inputs)
         return individual_model.predict(inputs)[0]
 
