@@ -1,10 +1,13 @@
 import os
 
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 from tensorflow.python.keras.models import load_model
 
 import utility
+from data.scats import ScatsData
 
+SCATS_DATA = ScatsData()
 
 class Predictor(object):
 
@@ -41,11 +44,16 @@ class Predictor(object):
         inputs = np.empty((1, 1))
         inputs[0][0] = time
         inputs = self.reshape_data(inputs)
-        return individual_model.predict(inputs)[0]
+        volume_data = SCATS_DATA.get_scats_volume(scats_number, junction)
+        volume_training = volume_data[:2016]
+        scaler = MinMaxScaler(feature_range=(0, 1)).fit(volume_training.reshape(-1, 1))
+        prediction = individual_model.predict(inputs)
+        prediction = scaler.inverse_transform(prediction)
+        return int(prediction[0][0])
 
     def reshape_data(self, data):
         if self.network_type == 'seas':
             reshaped_data = np.reshape(data, (data.shape[0], data.shape[1]))
         else:
-            reshaped_data = np.reshape(data, (data.shape[0], data.shape[1], 1))
+            reshaped_data = np.reshape(data, (data.shape[0], data.shape[1]))
         return reshaped_data

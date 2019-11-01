@@ -2,7 +2,6 @@ import datetime
 import json
 import numpy as np
 from PyQt5 import QtCore
-from datetime import date
 
 RELATIVE_LAT, RELATIVE_LONG = -37.9161, 144.9596
 DIRECTIONS_SINE = np.empty((8,))
@@ -67,7 +66,14 @@ def convert_time_interval_to_cyclic(time):
     return SIN_TIMES[time], COS_TIMES[time]
 
 def convert_time_to_cyclic(time):
-    return SIN_TIMES[TIME_INTERVALS[time]], COS_TIMES[TIME_INTERVALS[time]]
+    try:
+        parsedtime = datetime.datetime.strptime(time, '%H:%M')
+        seconds = (parsedtime - parsedtime.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()
+        return 0.5 * np.sin(2 * np.pi * seconds / 8640) + 0.5, 0.5 * np.cos(2 * np.pi * seconds / 8640) + 0.5
+    except ValueError:
+        return SIN_TIMES[TIME_INTERVALS[time]], COS_TIMES[TIME_INTERVALS[time]]
+
+
 
 def convert_date_to_cyclic_day(date):
     day, month, year = (int(x) for x in date.split('/'))
