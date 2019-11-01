@@ -6,6 +6,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 from data.scats import ScatsData
+from utility import get_setting
 
 SCATS_DATA = ScatsData()
 
@@ -160,8 +161,23 @@ def get_time_between_points(o_scats, o_junction, d_scats, d_junction, time):
     Returns:
         float: the time in minutes to travel from one location to another
     """
-    # volume = get_volume(o_scats, o_junction, time)
-    distance = get_distance_between_points(o_scats, o_junction, d_scats, d_junction)
-    speed = SCATS_DATA.get_speed_limit(o_scats, o_junction, d_scats, d_junction)
+    result = 0
+    delay = 1 / 3600
 
-    return distance / speed
+    model_name = get_setting["model"]
+    try:
+        predictor = Predictor(None, model_name)
+        volume = predictor.make_prediction_from_individual(o_scats, o_junction, time)
+
+        distance = get_distance_between_points(o_scats, o_junction, d_scats, d_junction)
+        speed_limit = SCATS_DATA.get_speed_limit(o_scats, o_junction, d_scats, d_junction)
+
+        flow = volume * 4
+        density = volume / distance
+        travel_speed = flow / density
+
+        result = distance / min(travel_speed, speed_limit) + delay
+    except ValueError:
+        pass
+
+    return result

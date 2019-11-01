@@ -97,6 +97,7 @@ DATA_MODES = {
     6: "ModeInfo"
 }
 
+
 def get_options(section):
     if section == "Add":
         return ADD_MODES
@@ -105,7 +106,7 @@ def get_options(section):
     if section == "Journey Planner":
         return JOURNEY_MODES
     if section == "Data":
-        return  DATA_MODES
+        return DATA_MODES
     return MENU
 
 
@@ -148,6 +149,7 @@ PREDICTOR = Predictor("model/deepfeedfwd/Generalised/Model.h5", "deepfeedfwd")
 class SelectionInfo:
     def __init__(self):
         # Universal
+        self.times = None
         self.has_selection = False
         self.type = "None"
         self.section = "Journey Planner"
@@ -345,7 +347,8 @@ class Segment:
         self.pos_b = pos_b  # [pos_a[0] + delta[0], pos_a[1] + delta[1]]
         self.traffic = traffic
         self.colour = (0, 0, 255)
-        print("Created segment between ({0}, {1}) and ({2}, {3}) with traffic {4}".format(pos_a[0], pos_a[1], pos_b[0], pos_b[1], traffic))
+        print("Created segment between ({0}, {1}) and ({2}, {3}) with traffic {4}".format(pos_a[0], pos_a[1], pos_b[0],
+                                                                                          pos_b[1], traffic))
 
     @staticmethod
     def generate_colour(traffic, max_traffic):
@@ -411,9 +414,9 @@ def generate_weighted_connections(data_connections, split_lines=True):
         pos_b = conn.node_b.pos
         delta = [pos_b[0] - pos_a[0], pos_b[1] - pos_a[1]]
         d = [delta[0] / num_segments, delta[1] / num_segments]
-        #print("Delta = ({0}, {1})".format(delta[0], delta[1]))
+        # print("Delta = ({0}, {1})".format(delta[0], delta[1]))
         if not split_lines:
-            #traffic = 5  # TEST VALUE
+            # traffic = 5  # TEST VALUE
             traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
             screen_start = CardinalDir.pos_to_screen(pos_a)
             screen_end = CardinalDir.pos_to_screen(pos_b)
@@ -446,7 +449,7 @@ def generate_weighted_connections(data_connections, split_lines=True):
             direction = CardinalDir.opposite_int(direction)
             start_pos = pos_b
             for i in range(num_segments):
-                #traffic = i  # TEST VALUE
+                # traffic = i  # TEST VALUE
                 traffic = get_traffic(pos_a[0], pos_a[1], direction, SELECTION.chosen_time, SELECTION.chosen_date)
                 screen_start = CardinalDir.pos_to_screen(start_pos)
                 screen_start = [screen_start[0] + 2, screen_start[1] + 2]
@@ -464,7 +467,6 @@ def generate_weighted_connections(data_connections, split_lines=True):
 
 
 def get_traffic(latitude, longitude, direction, time, date):
-
     inputs = [{
         "latitude": latitude,
         "longitude": longitude,
@@ -934,7 +936,7 @@ def time_mode_click(data_nodes, data_connections, mouse_pos):
         time_change(True)
     # If mouse is in center of screen continue to drawing path.
     elif mouse_pos[1] < (SCRN_H / 3) * 2:
-        get_path(data_nodes, data_connections)
+        get_path(data_nodes)
         SELECTION.mode = "Results"
     # If mouse is at the bottom of the screen decrease time.
     else:
@@ -1005,10 +1007,10 @@ def enter_start_time(screen, data_nodes, data_connections):
         SELECTION.mode = "Destination"
         return
 
-    get_path(data_nodes, data_connections)
+    get_path(data_nodes)
 
 
-def get_path(data_nodes, data_connections):
+def get_path(data_nodes):
     # The selected start/end of the journey, as a reference to a node object (which is a single 'direction' of a SCAT).
     start_node = SELECTION.start_node
     target_node = SELECTION.target_node
@@ -1021,51 +1023,77 @@ def get_path(data_nodes, data_connections):
     end_intersection = target_node.dir
 
     paths, path_costs = LOCATIONS.route(str(start), str(start_intersection), str(end), str(end_intersection), time, 5)
-    path = paths[0]
 
-    tuple_path = []
-    connection_a = None
-    skip_first = True
-    for str_node in path:
-        tuple_node = str_node.split("-")
-        if not skip_first:
-            tuple_path.append([connection_a, tuple_node])
-        else:
-            skip_first = False
-        connection_a = tuple_node
+    connections = []
+    for i in range(len(paths)):
+        tuple_path = []
+        connection_a = None
+        skip_first = True
+        for str_node in paths[i]:
+            tuple_node = str_node.split("-")
+            if not skip_first:
+                tuple_path.append([connection_a, tuple_node])
+            else:
+                skip_first = False
+            connection_a = tuple_node
 
-    conn_path = []
-    for conn in tuple_path:
-        connection = Connection()
-        connection.id = -1
-        node_a_info = conn[0]
-        for node in data_nodes:
-            if node_a_info[0] == str(node.SCAT_number):
-                for direction in node.directions:
-                    if node_a_info[1] == str(direction.dir):
-                        connection.node_a = direction
-                        break
+        conn_path = []
+        for conn in tuple_path:
+            connection = Connection()
+            connection.id = -1
+            node_a_info = conn[0]
+            for node in data_nodes:
+                if node_a_info[0] == str(node.SCAT_number):
+                    for direction in node.directions:
+                        if node_a_info[1] == str(direction.dir):
+                            connection.node_a = direction
+                            break
 
-        node_b_info = conn[1]
-        for node in data_nodes:
-            if node_b_info[0] == str(node.SCAT_number):
-                for direction in node.directions:
-                    if node_b_info[1] == str(direction.dir):
-                        connection.node_b = direction
-                        break
+            node_b_info = conn[1]
+            for node in data_nodes:
+                if node_b_info[0] == str(node.SCAT_number):
+                    for direction in node.directions:
+                        if node_b_info[1] == str(direction.dir):
+                            connection.node_b = direction
+                            break
 
-        conn_path.append(connection)
-    SELECTION.path = conn_path
+            conn_path.append(connection)
+        connections.append(conn_path)
+
+    SELECTION.path = connections
+    SELECTION.times = path_costs
+
+
+def convert_time(time):
+    return round(time * 60, 2)
 
 
 def draw_path(screen):
-    pos_b = [0, 0]
-    for conn in SELECTION.path:
-        pos_a = CardinalDir.pos_to_screen(conn.node_a.pos)
-        pos_b = CardinalDir.pos_to_screen(conn.node_b.pos)
-        pygame.draw.line(screen, RED, pos_a, pos_b, 2)
-        pygame.draw.circle(screen, BLUE, pos_a, 3, 3)
-    pygame.draw.circle(screen, GREEN, pos_b, 3, 3)
+    pos_b_x, pos_b_y = [0, 0]
+
+    colours = {
+        0: (75, 0, 130),
+        1: (30, 144, 255),
+        2: (47, 79, 79),
+        3: (0, 139, 0),
+        4: (255, 69, 0)
+    }
+
+    for c in range(len(SELECTION.path)):
+        s = SELECTION.path[c]
+        colour = colours.get(c)
+
+        font = pygame.font.Font('freesansbold.ttf', 16)
+        text = font.render("Route {0}: {1} minutes".format((c + 1), convert_time(SELECTION.times[c])), True, colour)
+        text_rect = text.get_rect()
+        text_rect.topleft = [OPTN_W + 5, 5 + (25 * c)]
+        screen.blit(text, text_rect)
+
+        for conn in s:
+            pos_a_x, pos_a_y = CardinalDir.pos_to_screen(conn.node_a.pos)
+            pos_b_x, pos_b_y = CardinalDir.pos_to_screen(conn.node_b.pos)
+            pygame.draw.line(screen, colour, [pos_a_x - c, pos_a_y - c], [pos_b_x - c, pos_b_y - c], 2)
+            pygame.draw.circle(screen, BLUE, [pos_a_x - c, pos_a_y - c], 3, 3)
 
     pygame.display.flip()
 
@@ -1199,14 +1227,16 @@ def find_simple_connections(data_nodes, data_connections):
                         dest_pos = CardinalDir.pos_to_screen(direction_2.pos)
                         delta_pos = [dest_pos[0] - origin_pos[0], dest_pos[1] - origin_pos[1]]
                         if CardinalDir.delta_pos_to_int(delta_pos) == direction.dir:
-                            squared_dist = math.pow(dest_pos[0] - origin_pos[0], 2) + math.pow(dest_pos[1] - origin_pos[1], 2)
+                            squared_dist = math.pow(dest_pos[0] - origin_pos[0], 2) + math.pow(
+                                dest_pos[1] - origin_pos[1], 2)
                             if squared_dist < closest:
                                 closest = squared_dist
                                 chosen_node = direction_2
             if chosen_node is not None:
                 already_exists = False
                 for connection in data_connections:
-                    if (connection.node_a in {chosen_node, direction}) and (connection.node_b in {chosen_node, direction}):
+                    if (connection.node_a in {chosen_node, direction}) and (
+                            connection.node_b in {chosen_node, direction}):
                         already_exists = True
                         break
                 if not already_exists:

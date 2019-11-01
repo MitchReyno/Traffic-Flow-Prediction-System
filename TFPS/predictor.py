@@ -1,17 +1,16 @@
 import os
 
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 from tensorflow.python.keras.models import load_model
-from data.data import process_data
 
 import utility
+from data.data import process_data
 from data.scats import ScatsData
 
 SCATS_DATA = ScatsData()
 
-class Predictor(object):
 
+class Predictor(object):
     model = None
     network_type = None
 
@@ -30,7 +29,8 @@ class Predictor(object):
 
         model_input = np.zeros((len(inputs), 8))
         for index, input in enumerate(inputs):
-            model_input[index][0], model_input[index][1] = utility.convert_absolute_coordinates_to_relative(input["latitude"], input["longitude"])
+            model_input[index][0], model_input[index][1] = utility.convert_absolute_coordinates_to_relative(
+                input["latitude"], input["longitude"])
             model_input[index][2], model_input[index][3] = utility.convert_direction_to_cyclic(input["direction"])
             model_input[index][4], model_input[index][5] = utility.convert_time_to_cyclic(input["time"])
             model_input[index][6], model_input[index][7] = utility.convert_date_to_cyclic_day(input["date"])
@@ -46,7 +46,8 @@ class Predictor(object):
 
     def make_prediction_from_individual(self, scats_number, junction, time):
 
-        individual_model = load_model("model/" + self.network_type + "/" + str(scats_number) + "/" + str(junction) + ".h5")
+        individual_model = load_model(
+            "model/" + self.network_type + "/" + str(scats_number) + "/" + str(junction) + ".h5")
 
         _, _, x_test, _, scaler = process_data(scats_number, junction, 12)
 

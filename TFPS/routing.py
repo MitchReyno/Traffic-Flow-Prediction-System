@@ -150,12 +150,13 @@ class Location(object):
 
         self.time = time
 
-    def shortest_path(self, origin, destination):
+    def shortest_path(self, origin, destination, time):
         """ Returns the shortest path between intersections (using Dijkstra's algorithm)
 
         Parameters:
             origin (String): the origin scats site
             destination (String): the destination scats site
+            time (String): the time value
 
         Returns:
             array: the path to one intersection from another
@@ -216,7 +217,6 @@ class Location(object):
 
         return cost
 
-
     def route(self, o_scats, o_junction, d_scats, d_junction, time, number_of_paths):
         """ Finds a number of routes from the origin to the destination
 
@@ -238,8 +238,8 @@ class Location(object):
         origin = "{0}-{1}".format(o_scats, o_junction)
         destination = "{0}-{1}".format(d_scats, d_junction)
 
-        a = [self.shortest_path(origin, destination)]
-        a_costs = [self.path_cost(a)]
+        a = [self.shortest_path(origin, destination, time)]
+        a_costs = [self.path_cost(a[0])]
         b = queue.PriorityQueue()
 
         for k in range(1, number_of_paths):
@@ -259,7 +259,7 @@ class Location(object):
                         removed_roads.append((path[i], path[i + 1], travel_time))
                         self.remove_connection(path[i], path[i + 1])
 
-                spur_path = self.shortest_path(spur_node, destination)
+                spur_path = self.shortest_path(spur_node, destination, time)
 
                 if spur_path is not None:
                     total_path = root_path + spur_path
@@ -287,7 +287,6 @@ class Location(object):
                     break
 
         return a, a_costs
-
 
     def debug_print(self):
         """ Prints the connected roads list """
