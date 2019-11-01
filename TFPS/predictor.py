@@ -36,8 +36,13 @@ class Predictor(object):
             model_input[index][6], model_input[index][7] = utility.convert_date_to_cyclic_day(input["date"])
 
         model_input = self.reshape_data(model_input)
+        try:
+            prediction = self.model.predict(model_input)
+        except ValueError:
+            model_input = np.reshape(model_input, (model_input.shape[0], model_input.shape[1], 1))
+            prediction = self.model.predict(model_input)
 
-        return self.model.predict(model_input)
+        return prediction
 
     def make_prediction_from_individual(self, scats_number, junction, time):
 
@@ -45,12 +50,11 @@ class Predictor(object):
 
         _, _, x_test, _, scaler = process_data(scats_number, junction, 12)
 
-        if self.network_type == 'saes':
-            x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1]))
-        else:
-            x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1]))
-
-        predicted = individual_model.predict(x_test)
+        try:
+            predicted = individual_model.predict(x_test)
+        except ValueError:
+            x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+            predicted = individual_model.predict(x_test)
         predicted = scaler.inverse_transform(predicted.reshape(-1, 1)).reshape(1, -1)[0]
         predicted = predicted[utility.TIME_INTERVALS[time]]
 

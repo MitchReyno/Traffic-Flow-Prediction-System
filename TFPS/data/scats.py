@@ -275,7 +275,7 @@ class ScatsData(object):
         return speed_limit
 
     def get_training_data(self):
-        train_data = np.zeros((len(self.data) * 96, 7))
+        train_data = np.zeros((len(self.data)*96, 9))
         count = 0
         rows = self.data.to_numpy()
         for i in range(len(rows)):
@@ -290,11 +290,11 @@ class ScatsData(object):
                 train_data[count][0] = lat
                 train_data[count][1] = long
                 if valid_junction:
-                    train_data[count][2] = self.DIRECTIONS_SINE[direction - 1]
-                    train_data[count][3] = self.DIRECTIONS_COSINE[direction - 1]
-                train_data[count][4] = self.SIN_TIMES[n]
-                train_data[count][5] = self.COS_TIMES[n]
-                train_data[count][6] = volume[n] / self.MAX_TRAFFIC
+                    train_data[count][2], train_data[count][3] = utility.convert_direction_to_cyclic(direction)
+                train_data[count][4], train_data[count][5] = utility.convert_time_interval_to_cyclic(n)
+                train_data[count][6], train_data[count][7] = utility.convert_date_to_cyclic_day(row[9])
+                train_data[count][8] = volume[n] / self.MAX_TRAFFIC
                 count += 1
         np.random.shuffle(train_data)
-        return train_data[0:, 0:6], train_data[0:, 6:]
+        return train_data[0:, 0:8], train_data[0:, 8:]
+
