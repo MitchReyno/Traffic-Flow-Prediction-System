@@ -193,6 +193,7 @@ def main(argv):
         predicted = model.predict(x_test)
         predicted = scaler.inverse_transform(predicted.reshape(-1, 1)).reshape(1, -1)[0]
         y_preds.append(predicted[:96])
+        print(f"X_TEST: {x_test[0]}")
         print(name)
         mtx.append(eva_regress(y_test, predicted))
 

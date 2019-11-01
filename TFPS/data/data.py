@@ -6,8 +6,6 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 from data.scats import ScatsData
-from predictor import Predictor
-from utility import get_setting
 
 SCATS_DATA = ScatsData()
 
@@ -147,25 +145,6 @@ def get_distance_between_points(o_scats, o_junction, d_scats, d_junction):
         dist_longitude / 2) ** 2
 
     return 2 * earth_radius * asin(np.sqrt(h))
-
-
-def get_volume(scats, junction, time):
-    """ Gets the predicted volume for a scats location at a particular time
-
-    Parameters:
-        scats (int): the number of the SCATS site
-        junction (int): the VicRoads internal number representing the location
-        time (String): the time of day in the format of ##:##
-
-    Returns:
-        int: the volume of traffic
-    """
-    model_name = get_setting("model").lower()
-    file = "model/{0}/{1}/{2}.h5".format(model_name, scats, junction)
-
-    prediction = Predictor(file, model_name)
-
-    return prediction.make_prediction_from_individual(scats, junction, time)
 
 
 def get_time_between_points(o_scats, o_junction, d_scats, d_junction, time):

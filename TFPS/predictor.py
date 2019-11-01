@@ -3,6 +3,7 @@ import os
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.python.keras.models import load_model
+from data.data import process_data
 
 import utility
 from data.scats import ScatsData
@@ -41,15 +42,19 @@ class Predictor(object):
     def make_prediction_from_individual(self, scats_number, junction, time):
 
         individual_model = load_model("model/" + self.network_type + "/" + str(scats_number) + "/" + str(junction) + ".h5")
-        inputs = np.empty((1, 1))
-        inputs[0][0] = time
-        inputs = self.reshape_data(inputs)
-        volume_data = SCATS_DATA.get_scats_volume(scats_number, junction)
-        volume_training = volume_data[:2016]
-        scaler = MinMaxScaler(feature_range=(0, 1)).fit(volume_training.reshape(-1, 1))
-        prediction = individual_model.predict(inputs)
-        prediction = scaler.inverse_transform(prediction)
-        return int(prediction[0][0])
+
+        _, _, x_test, _, scaler = process_data(scats_number, junction, 12)
+
+        if self.network_type == 'saes':
+            x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1]))
+        else:
+            x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1]))
+
+        predicted = individual_model.predict(x_test)
+        predicted = scaler.inverse_transform(predicted.reshape(-1, 1)).reshape(1, -1)[0]
+        predicted = predicted[utility.TIME_INTERVALS[time]]
+
+        return int(predicted)
 
     def reshape_data(self, data):
         if self.network_type == 'seas':
