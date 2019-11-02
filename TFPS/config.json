@@ -2,7 +2,7 @@
   "database": "scats.db",
   "train": {
     "lag": 12,
-    "batch": 256,
+    "batch": 32,
     "epochs": 600
   },
   "model": "LSTM"
